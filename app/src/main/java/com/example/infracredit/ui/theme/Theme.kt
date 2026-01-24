@@ -45,16 +45,18 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun InfraCreditTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    forceLight: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val effectiveDarkTheme = if (forceLight) false else darkTheme
+    val colorScheme = if (effectiveDarkTheme) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !effectiveDarkTheme
         }
     }
 
