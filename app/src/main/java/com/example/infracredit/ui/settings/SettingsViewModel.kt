@@ -20,6 +20,9 @@ class SettingsViewModel @Inject constructor(
     private val _profileState = mutableStateOf(ProfileState())
     val profileState: State<ProfileState> = _profileState
 
+    private val _passwordState = mutableStateOf(PasswordState())
+    val passwordState: State<PasswordState> = _passwordState
+
     val isDarkMode: State<Boolean> = themeManager.isDarkMode
 
     init {
@@ -32,6 +35,7 @@ class SettingsViewModel @Inject constructor(
             authRepository.getProfile()
                 .onSuccess { profile ->
                     _profileState.value = ProfileState(profile = profile)
+                    themeManager.setDarkMode(false) // Default or load from local storage if implemented
                 }
                 .onFailure { error ->
                     _profileState.value = ProfileState(error = error.message)
@@ -56,6 +60,32 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun changePassword(oldPass: String, newPass: String) {
+        viewModelScope.launch {
+            _passwordState.value = PasswordState(isLoading = true)
+            authRepository.resetPassword(oldPass, newPass)
+                .onSuccess {
+                    _passwordState.value = PasswordState(isSuccess = true)
+                }
+                .onFailure {
+                    _passwordState.value = PasswordState(error = it.message)
+                }
+        }
+    }
+
+    fun forgotPassword(phone: String) {
+        viewModelScope.launch {
+            _passwordState.value = PasswordState(isLoading = true)
+            authRepository.forgotPassword(phone)
+                .onSuccess {
+                    _passwordState.value = PasswordState(isSuccess = true, message = it)
+                }
+                .onFailure {
+                    _passwordState.value = PasswordState(error = it.message)
+                }
+        }
+    }
+
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
             authRepository.logout()
@@ -69,4 +99,11 @@ data class ProfileState(
     val profile: ProfileDto? = null,
     val error: String? = null,
     val isUpdateSuccess: Boolean = false
+)
+
+data class PasswordState(
+    val isLoading: Boolean = false,
+    val isSuccess: Boolean = false,
+    val message: String? = null,
+    val error: String? = null
 )

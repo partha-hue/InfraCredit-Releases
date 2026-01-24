@@ -5,7 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.infracredit.data.remote.dto.ProfileDto
 import com.example.infracredit.domain.model.TransactionType
+import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.domain.repository.CustomerRepository
 import com.example.infracredit.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +18,7 @@ import javax.inject.Inject
 class TransactionViewModel @Inject constructor(
     private val customerRepository: CustomerRepository,
     private val transactionRepository: TransactionRepository,
+    private val authRepository: AuthRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -27,8 +30,20 @@ class TransactionViewModel @Inject constructor(
     private val _addTxState = mutableStateOf(AddTransactionState())
     val addTxState: State<AddTransactionState> = _addTxState
 
+    private val _ownerProfile = mutableStateOf<ProfileDto?>(null)
+    val ownerProfile: State<ProfileDto?> = _ownerProfile
+
     init {
+        loadOwnerProfile()
         customerIdFromState?.let { loadCustomerData(it) }
+    }
+
+    private fun loadOwnerProfile() {
+        viewModelScope.launch {
+            authRepository.getProfile().onSuccess {
+                _ownerProfile.value = it
+            }
+        }
     }
 
     fun loadCustomerData(id: String? = customerIdFromState) {
@@ -63,6 +78,15 @@ class TransactionViewModel @Inject constructor(
                 }
             } else {
                 _addTxState.value = AddTransactionState(error = result.exceptionOrNull()?.message ?: "Transaction failed")
+            }
+        }
+    }
+
+    fun deleteCustomer(onSuccess: () -> Unit) {
+        val id = customerIdFromState ?: return
+        viewModelScope.launch {
+            customerRepository.deleteCustomer(id).onSuccess {
+                onSuccess()
             }
         }
     }

@@ -30,12 +30,8 @@ class CustomerRepositoryImpl @Inject constructor(
 
     override suspend fun getCustomerById(id: String): Result<Customer> {
         return try {
-            // Note: In a real production app, you might want a specific GET /customers/{id} endpoint
-            // for efficiency. For now, we filter the list or use the summary if available.
-            val dtos = api.getCustomers(false)
-            val customer = dtos.find { it.id == id }?.toDomain()
-            if (customer != null) Result.success(customer) 
-            else Result.failure(Exception("Customer not found"))
+            val dto = api.getCustomer(id)
+            Result.success(dto.toDomain())
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -45,6 +41,15 @@ class CustomerRepositoryImpl @Inject constructor(
         return try {
             val dto = api.updateCustomer(id, CustomerDto(name = name, phone = phone, isDeleted = isDeleted))
             Result.success(dto.toDomain())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteCustomer(id: String): Result<Boolean> {
+        return try {
+            val response = api.deleteCustomer(id)
+            Result.success(response.success)
         } catch (e: Exception) {
             Result.failure(e)
         }

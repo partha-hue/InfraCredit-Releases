@@ -17,6 +17,12 @@ interface InfracreditApi {
     @PUT("auth/profile")
     suspend fun updateProfile(@Body profile: ProfileDto): ProfileDto
 
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Query("phone") phone: String): GenericResponse
+
+    @POST("auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): GenericResponse
+
     @GET("dashboard/summary")
     suspend fun getDashboardSummary(): DashboardSummaryDto
 
@@ -25,6 +31,9 @@ interface InfracreditApi {
 
     @POST("customers")
     suspend fun addCustomer(@Body customer: CustomerDto): CustomerDto
+
+    @GET("customers/{id}")
+    suspend fun getCustomer(@Path("id") id: String): CustomerDto
 
     @PUT("customers/{id}")
     suspend fun updateCustomer(@Path("id") id: String, @Body customer: CustomerDto): CustomerDto

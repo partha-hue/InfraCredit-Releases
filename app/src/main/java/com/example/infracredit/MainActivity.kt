@@ -28,6 +28,7 @@ import com.example.infracredit.ui.customer.AddCustomerScreen
 import com.example.infracredit.ui.customer.ContactImportScreen
 import com.example.infracredit.ui.customer.CustomerDetailScreen
 import com.example.infracredit.ui.customer.CustomerListScreen
+import com.example.infracredit.ui.customer.EditCustomerScreen
 import com.example.infracredit.ui.customer.RecycleBinScreen
 import com.example.infracredit.ui.dashboard.DashboardScreen
 import com.example.infracredit.ui.navigation.Screen
@@ -126,6 +127,17 @@ fun AppNavigation(startDestination: String) {
             arguments = listOf(navArgument("customerId") { type = NavType.StringType })
         ) {
             CustomerDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { id -> navController.navigate(Screen.EditCustomer.createRoute(id)) }
+            )
+        }
+        composable(
+            route = Screen.EditCustomer.route,
+            arguments = listOf(navArgument("customerId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val customerId = backStackEntry.arguments?.getString("customerId") ?: ""
+            EditCustomerScreen(
+                customerId = customerId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -159,12 +171,5 @@ fun AppNavigation(startDestination: String) {
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-    }
-}
-
-@Composable
-fun PlaceholderScreen(title: String, onBack: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = title)
     }
 }

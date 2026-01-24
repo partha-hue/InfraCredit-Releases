@@ -57,4 +57,22 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun isAuthenticated(): Boolean {
         return tokenManager.accessToken.firstOrNull() != null
     }
+
+    override suspend fun forgotPassword(phone: String): Result<String> {
+        return try {
+            val response = api.forgotPassword(phone)
+            Result.success(response.message ?: "Reset link sent")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun resetPassword(oldPass: String, newPass: String): Result<String> {
+        return try {
+            val response = api.resetPassword(ResetPasswordRequest(oldPassword = oldPass, newPassword = newPass))
+            Result.success(response.message ?: "Password updated")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

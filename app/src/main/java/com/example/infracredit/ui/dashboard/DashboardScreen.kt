@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,10 +54,12 @@ fun DashboardScreen(
                 title = { Text("InfraCredit", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary) },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.Gray)
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         bottomBar = {
@@ -73,7 +74,7 @@ fun DashboardScreen(
             ExtendedFloatingActionButton(
                 onClick = onNavigateToAddCustomer,
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp),
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("ADD CUSTOMER", fontWeight = FontWeight.Bold) }
@@ -84,7 +85,7 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF8F9FA))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Summary Section
             SummarySection(dashState)
@@ -136,17 +137,17 @@ fun SummarySection(state: DashboardState) {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         SummaryCard(
-            label = "Credit",
+            label = "You'll Get",
             amount = state.totalOutstanding.toString(),
-            containerColor = Color(0xFFFFEBEE),
-            contentColor = Color(0xFFD32F2F),
+            containerColor = Color(0xFFE8F5E9),
+            contentColor = Color(0xFF388E3C),
             modifier = Modifier.weight(1f)
         )
         SummaryCard(
-            label = "Payment",
-            amount = state.todayCollection.toString(),
-            containerColor = Color(0xFFE8F5E9),
-            contentColor = Color(0xFF388E3C),
+            label = "You'll Give",
+            amount = state.todayCollection.toString(), // Assuming this holds negative/payment values in this context
+            containerColor = Color(0xFFFFEBEE),
+            contentColor = Color(0xFFD32F2F),
             modifier = Modifier.weight(1f)
         )
     }
@@ -158,11 +159,11 @@ fun SummaryCard(label: String, amount: String, containerColor: Color, contentCol
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(label, fontSize = 12.sp, color = contentColor.copy(alpha = 0.7f), fontWeight = FontWeight.Medium)
-            Text("₹ $amount", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = contentColor)
+            Text(label, fontSize = 12.sp, color = contentColor.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+            Text("₹ $amount", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = contentColor)
         }
     }
 }
@@ -176,14 +177,14 @@ fun WhatsAppSearchBar(query: String, onQueryChange: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        placeholder = { Text("Search customers", color = Color.Gray) },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+        placeholder = { Text("Search customers", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
         shape = RoundedCornerShape(24.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-            unfocusedBorderColor = Color.Transparent,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
         ),
         singleLine = true
     )
@@ -201,13 +202,13 @@ fun FilterChips(selectedFilter: String, onFilterSelected: (String) -> Unit) {
             Surface(
                 modifier = Modifier.clickable { onFilterSelected(filter) },
                 shape = RoundedCornerShape(20.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
-                border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {
                 Text(
                     text = filter,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    color = if (isSelected) Color.White else Color.Black,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -222,7 +223,7 @@ fun WhatsAppCustomerItem(customer: Customer, onClick: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick(customer.id) },
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
@@ -233,16 +234,20 @@ fun WhatsAppCustomerItem(customer: Customer, onClick: (String) -> Unit) {
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFE9ECEF))
-                    .clickable { /* Profile Preview */ },
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(30.dp))
+                Text(
+                    text = customer.name.take(1).uppercase(),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(customer.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-                Text("Last updated: ${customer.createdAt.split("T")[0]}", fontSize = 12.sp, color = Color.Gray)
+                Text(customer.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text("Updated: ${customer.createdAt.split("T").getOrNull(0) ?: ""}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.End) {
                 val isCredit = customer.totalDue > 0
@@ -253,9 +258,9 @@ fun WhatsAppCustomerItem(customer: Customer, onClick: (String) -> Unit) {
                     color = if (isCredit) Color(0xFFD32F2F) else Color(0xFF388E3C)
                 )
                 Text(
-                    text = if (isCredit) "Credit" else "Payment",
+                    text = if (isCredit) "You'll Get" else "You'll Give",
                     fontSize = 10.sp,
-                    color = if (isCredit) Color(0xFFD32F2F).copy(alpha = 0.7f) else Color(0xFF388E3C).copy(alpha = 0.7f)
+                    color = (if (isCredit) Color(0xFFD32F2F) else Color(0xFF388E3C)).copy(alpha = 0.7f)
                 )
             }
         }
@@ -270,14 +275,14 @@ fun WhatsAppBottomNavigation(
     onProfileClick: () -> Unit
 ) {
     NavigationBar(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
         val items = listOf(
-            Triple("Customers", Icons.Default.Person, onCustomersClick),
+            Triple("Customers", Icons.Default.People, onCustomersClick),
             Triple("Calculator", Icons.Outlined.Calculate, onCalculatorClick),
             Triple("Contacts", Icons.Outlined.Contacts, onContactsClick),
-            Triple("Profile", Icons.Outlined.Person, onProfileClick)
+            Triple("Settings", Icons.Default.Settings, onProfileClick)
         )
         
         items.forEach { (label, icon, onClick) ->
@@ -289,9 +294,9 @@ fun WhatsAppBottomNavigation(
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = Color.Gray,
-                    unselectedTextColor = Color.Gray,
-                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
                 )
             )
         }

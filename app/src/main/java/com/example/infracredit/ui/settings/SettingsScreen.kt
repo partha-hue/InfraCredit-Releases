@@ -2,6 +2,7 @@ package com.example.infracredit.ui.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -40,6 +42,7 @@ fun SettingsScreen(
     val state = viewModel.profileState.value
     val isDarkMode by viewModel.isDarkMode
     val context = LocalContext.current
+    var showPasswordDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -60,12 +63,10 @@ fun SettingsScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Profile Header
             ProfileHeader(
                 profile = state.profile,
                 isLoading = state.isLoading,
                 onImageSelect = { uri ->
-                    // Simplified: In a real app, upload this URI to Cloudinary/S3
                     viewModel.updateProfile(
                         fullName = state.profile?.fullName ?: "",
                         businessName = state.profile?.businessName,
@@ -76,13 +77,18 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Settings Sections
             SettingsSection(title = "Account") {
                 SettingsItem(
                     icon = Icons.Default.Edit, 
                     title = "Edit Profile", 
                     subtitle = "Change name, business details",
                     onClick = onNavigateToProfileEdit
+                )
+                SettingsItem(
+                    icon = Icons.Default.LockReset, 
+                    title = "Change Password", 
+                    subtitle = "Update your security credentials",
+                    onClick = { showPasswordDialog = true }
                 )
                 SettingsItem(
                     icon = Icons.Default.DeleteSweep, 
@@ -103,9 +109,9 @@ fun SettingsScreen(
 
             SettingsSection(title = "Security & Help") {
                 SettingsItem(
-                    icon = Icons.Default.Lock, 
-                    title = "App Lock", 
-                    subtitle = "Secure your ledger with PIN/Fingerprint"
+                    icon = Icons.Default.Fingerprint, 
+                    title = "Biometric Lock", 
+                    subtitle = "Enable fingerprint authentication"
                 )
                 SettingsItem(
                     icon = Icons.Default.HelpOutline, 
@@ -120,7 +126,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Logout
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -139,7 +144,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
             Text(
-                "InfraCredit v1.0.0",
+                "InfraCredit v1.0.0 (Production Build)",
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 fontSize = 12.sp,
                 color = Color.Gray
@@ -147,6 +152,66 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
+
+    if (showPasswordDialog) {
+        ChangePasswordDialog(
+            viewModel = viewModel,
+            onDismiss = { showPasswordDialog = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChangePasswordDialog(viewModel: SettingsViewModel, onDismiss: () -> Unit) {
+    var oldPass by remember { mutableStateOf("") }
+    var newPass by remember { mutableStateOf("") }
+    val state = viewModel.passwordState.value
+    val context = LocalContext.current
+
+    LaunchedEffect(state.isSuccess) {
+        if (state.isSuccess) {
+            Toast.makeText(context, "Password changed successfully", Toast.LENGTH_SHORT).show()
+            onDismiss()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Reset Password") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = oldPass,
+                    onValueChange = { oldPass = it },
+                    label = { Text("Current Password") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = newPass,
+                    onValueChange = { newPass = it },
+                    label = { Text("New Password") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (state.error != null) {
+                    Text(state.error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { viewModel.changePassword(oldPass, newPass) },
+                enabled = oldPass.isNotBlank() && newPass.length >= 6 && !state.isLoading
+            ) {
+                Text("Update")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -180,7 +245,6 @@ fun ProfileHeader(
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(32.dp))
                     } else {
-                        // In real app, use Coil or Glide to load profile.profilePic
                         Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray)
                     }
                 }
@@ -201,27 +265,22 @@ fun ProfileHeader(
                 Text(profile.phone ?: "No Phone", fontSize = 14.sp, color = Color.Gray)
                 
                 profile.businessName?.let {
-                    ShopChip(label = it)
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text(
+                            text = it,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ShopChip(label: String) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.padding(top = 8.dp)
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 

@@ -6,7 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.items as listItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -99,7 +100,7 @@ fun CalculatorScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(buttons) { btn ->
+                gridItems(buttons) { btn ->
                     CalcButton(btn) {
                         when (btn) {
                             "C" -> {
@@ -191,7 +192,7 @@ fun CustomerPickerDialog(
                 fontWeight = FontWeight.Bold
             )
             LazyColumn {
-                items(customers) { customer ->
+                listItems(customers) { customer ->
                     ListItem(
                         modifier = Modifier.clickable { onSelect(customer) },
                         headlineContent = { Text(customer.name) },
