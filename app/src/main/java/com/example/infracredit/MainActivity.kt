@@ -1,0 +1,126 @@
+package com.example.infracredit
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.infracredit.domain.repository.AuthRepository
+import com.example.infracredit.ui.auth.LoginScreen
+import com.example.infracredit.ui.auth.RegisterScreen
+import com.example.infracredit.ui.customer.AddCustomerScreen
+import com.example.infracredit.ui.customer.CustomerDetailScreen
+import com.example.infracredit.ui.customer.CustomerListScreen
+import com.example.infracredit.ui.dashboard.DashboardScreen
+import com.example.infracredit.ui.navigation.Screen
+import com.example.infracredit.ui.settings.SettingsScreen
+import com.example.infracredit.ui.theme.InfraCreditTheme
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var authRepository: AuthRepository
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            var startDestination by remember { mutableStateOf<String?>(null) }
+            
+            LaunchedEffect(Unit) {
+                startDestination = if (authRepository.isAuthenticated()) {
+                    Screen.Dashboard.route
+                } else {
+                    Screen.Login.route
+                }
+            }
+
+            InfraCreditTheme {
+                startDestination?.let { destination ->
+                    AppNavigation(destination)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AppNavigation(startDestination: String) {
+    val navController = rememberNavController()
+
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
+    ) {
+        composable(Screen.Login.route) {
+            LoginScreen(
+                onNavigateToRegister = { navController.navigate(Screen.Register.route) },
+                onLoginSuccess = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.Register.route) {
+            RegisterScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onRegisterSuccess = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.Dashboard.route) {
+            DashboardScreen(
+                onNavigateToAddCustomer = { navController.navigate(Screen.AddCustomer.route) },
+                onNavigateToCustomers = { navController.navigate(Screen.CustomerList.route) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+            )
+        }
+        composable(Screen.CustomerList.route) {
+            CustomerListScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDetail = { id -> navController.navigate(Screen.CustomerDetail.createRoute(id)) },
+                onNavigateToAdd = { navController.navigate(Screen.AddCustomer.route) }
+            )
+        }
+        composable(Screen.AddCustomer.route) {
+            AddCustomerScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Screen.CustomerDetail.route,
+            arguments = listOf(navArgument("customerId") { type = NavType.StringType })
+        ) {
+            CustomerDetailScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+    }
+}
