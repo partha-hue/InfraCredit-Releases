@@ -11,11 +11,17 @@ interface InfracreditApi {
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
 
+    @GET("auth/profile")
+    suspend fun getProfile(): ProfileDto
+
+    @PUT("auth/profile")
+    suspend fun updateProfile(@Body profile: ProfileDto): ProfileDto
+
     @GET("dashboard/summary")
     suspend fun getDashboardSummary(): DashboardSummaryDto
 
     @GET("customers")
-    suspend fun getCustomers(): List<CustomerDto>
+    suspend fun getCustomers(@Query("deleted") deleted: Boolean = false): List<CustomerDto>
 
     @POST("customers")
     suspend fun addCustomer(@Body customer: CustomerDto): CustomerDto
@@ -24,7 +30,7 @@ interface InfracreditApi {
     suspend fun updateCustomer(@Path("id") id: String, @Body customer: CustomerDto): CustomerDto
 
     @DELETE("customers/{id}")
-    suspend fun deleteCustomer(@Path("id") id: String)
+    suspend fun deleteCustomer(@Path("id") id: String): GenericResponse
 
     @GET("customers/{id}/transactions")
     suspend fun getTransactions(@Path("id") customerId: String): List<TransactionDto>

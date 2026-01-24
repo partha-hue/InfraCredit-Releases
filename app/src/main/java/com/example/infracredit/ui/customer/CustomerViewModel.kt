@@ -17,31 +17,50 @@ class CustomerViewModel @Inject constructor(
     private val _listState = mutableStateOf(CustomerListState())
     val listState: State<CustomerListState> = _listState
 
+    private val _deletedState = mutableStateOf(CustomerListState())
+    val deletedState: State<CustomerListState> = _deletedState
+
     private val _addState = mutableStateOf(AddCustomerState())
     val addState: State<AddCustomerState> = _addState
 
-    fun getCustomers() {
+    fun getCustomers(deleted: Boolean = false) {
         viewModelScope.launch {
-            _listState.value = CustomerListState(isLoading = true)
-            val result = repository.getCustomers()
-            if (result.isSuccess) {
-                _listState.value = CustomerListState(customers = result.getOrDefault(emptyList()))
-            } else {
-                _listState.value = CustomerListState(error = result.exceptionOrNull()?.message ?: "Failed to load customers")
-            }
+            if (deleted) _deletedState.value = CustomerListState(isLoading = true)
+            else _listState.value = CustomerListState(isLoading = true)
+
+            repository.getCustomers(deleted)
+                .onSuccess { customers ->
+                    if (deleted) _deletedState.value = CustomerListState(customers = customers)
+                    else _listState.value = CustomerListState(customers = customers)
+                }
+                .onFailure { e ->
+                    if (deleted) _deletedState.value = CustomerListState(error = e.message)
+                    else _listState.value = CustomerListState(error = e.message)
+                }
         }
     }
 
     fun addCustomer(name: String, phone: String?) {
         viewModelScope.launch {
             _addState.value = AddCustomerState(isLoading = true)
-            val result = repository.addCustomer(name, phone)
-            if (result.isSuccess) {
-                _addState.value = AddCustomerState(isSuccess = true)
-                getCustomers() // Refresh list
-            } else {
-                _addState.value = AddCustomerState(error = result.exceptionOrNull()?.message ?: "Failed to add customer")
-            }
+            repository.addCustomer(name, phone)
+                .onSuccess {
+                    _addState.value = AddCustomerState(isSuccess = true)
+                    getCustomers(false)
+                }
+                .onFailure { e ->
+                    _addState.value = AddCustomerState(error = e.message)
+                }
+        }
+    }
+
+    fun updateCustomer(id: String, name: String, phone: String?, isDeleted: Boolean = false) {
+        viewModelScope.launch {
+            repository.updateCustomer(id, name, phone, isDeleted)
+                .onSuccess {
+                    getCustomers(false)
+                    getCustomers(true)
+                }
         }
     }
 }

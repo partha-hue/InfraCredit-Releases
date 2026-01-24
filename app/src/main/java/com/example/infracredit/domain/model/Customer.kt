@@ -5,5 +5,5 @@ data class Customer(
     val name: String,
     val phone: String?,
     val totalDue: Double,
-    val createdAt: Long
+    val createdAt: String // Changed to String to match MongoDB ISO 8601
 )

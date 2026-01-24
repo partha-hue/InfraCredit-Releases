@@ -7,7 +7,7 @@ data class TransactionDto(
     val id: String? = null,
     val customerId: String,
     val amount: Double,
-    val type: String, // "CREDIT" or "PAYMENT"
-    val description: String?,
-    val createdAt: Long? = null
+    val type: String,
+    val description: String? = null,
+    val createdAt: String? = null // Changed to String to handle ISO 8601 from MongoDB
 )

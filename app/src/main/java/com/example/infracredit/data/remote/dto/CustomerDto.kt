@@ -8,5 +8,6 @@ data class CustomerDto(
     val name: String,
     val phone: String?,
     val totalDue: Double = 0.0,
-    val createdAt: Long? = null
+    val isDeleted: Boolean = false, // Added for soft delete support
+    val createdAt: String? = null
 )

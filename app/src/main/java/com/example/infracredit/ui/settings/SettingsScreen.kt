@@ -1,35 +1,50 @@
 package com.example.infracredit.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.infracredit.ui.dashboard.DashboardViewModel
+import com.example.infracredit.data.remote.dto.ProfileDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: DashboardViewModel = hiltViewModel()
+    onNavigateToProfileEdit: () -> Unit,
+    onNavigateToRecycleBin: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val state = viewModel.profileState.value
+    var isDarkMode by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Profile & Settings", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         }
     ) { padding ->
@@ -37,53 +52,196 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .background(Color(0xFFF8F9FA))
+                .verticalScroll(rememberScrollState())
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            // Profile Header
+            ProfileHeader(
+                profile = state.profile,
+                isLoading = state.isLoading
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Settings Sections
+            SettingsSection(title = "Account") {
+                SettingsItem(
+                    icon = Icons.Default.Edit, 
+                    title = "Edit Profile", 
+                    subtitle = "Change name, business details",
+                    onClick = onNavigateToProfileEdit
+                )
+                SettingsItem(
+                    icon = Icons.Default.DeleteSweep, 
+                    title = "Recycle Bin", 
+                    subtitle = "Restore deleted customers",
+                    onClick = onNavigateToRecycleBin
+                )
+                SettingsItem(icon = Icons.Default.Language, title = "App Language", subtitle = "English")
+            }
+
+            SettingsSection(title = "Display") {
+                SettingsToggleItem(
+                    icon = Icons.Default.DarkMode,
+                    title = "Dark Mode",
+                    checked = isDarkMode,
+                    onCheckedChange = { isDarkMode = it }
+                )
+            }
+
+            SettingsSection(title = "Security & Help") {
+                SettingsItem(icon = Icons.Default.Lock, title = "App Lock", subtitle = "Secure your ledger with PIN/Fingerprint")
+                SettingsItem(icon = Icons.Default.HelpOutline, title = "Help & Support", subtitle = "Contact us for issues")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Logout
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.logout(onLogout) },
+                color = Color.White
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(imageVector = Icons.Default.Person, contentDescription = null, modifier = Modifier.size(48.dp))
+                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Color.Red)
                     Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(text = "Shop Owner", style = MaterialTheme.typography.titleMedium)
-                        Text(text = "InfraCredit Premium User", style = MaterialTheme.typography.bodySmall)
-                    }
+                    Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold)
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(40.dp))
+            Text(
+                "InfraCredit v1.0.0",
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
 
-            Text(text = "Account", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            
-            ListItem(
-                headlineContent = { Text("Logout") },
-                leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                trailingContent = {
-                    Button(
-                        onClick = { viewModel.logout(onLogout) },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Logout")
+@Composable
+fun ProfileHeader(profile: ProfileDto?, isLoading: Boolean) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.White
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box {
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE9ECEF)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    } else {
+                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray)
                     }
                 }
-            )
-            
-            HorizontalDivider()
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
-            Text(
-                text = "Version 1.0.0 (Production)",
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline
-            )
+                IconButton(
+                    onClick = { /* TODO: Upload Image */ },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = "Edit Picture", tint = Color.White, modifier = Modifier.size(16.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            if (profile != null) {
+                Text(profile.fullName, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(profile.phone ?: "No Phone", fontSize = 14.sp, color = Color.Gray)
+                
+                profile.businessName?.let {
+                    ShopChip(label = it)
+                }
+            } else if (!isLoading) {
+                Text("Error loading profile", color = Color.Red)
+            }
         }
+    }
+}
+
+@Composable
+fun ShopChip(label: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.padding(top = 8.dp)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(modifier = Modifier.padding(top = 16.dp)) {
+        Text(
+            text = title,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Surface(color = Color.White) {
+            Column {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsItem(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit = {}) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.Gray)
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, fontSize = 12.sp, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun SettingsToggleItem(icon: ImageVector, title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = Color.Gray)
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

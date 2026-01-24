@@ -10,5 +10,5 @@ data class Transaction(
     val amount: Double,
     val type: TransactionType,
     val description: String?,
-    val createdAt: Long
+    val createdAt: String // Changed to String to match MongoDB ISO 8601
 )

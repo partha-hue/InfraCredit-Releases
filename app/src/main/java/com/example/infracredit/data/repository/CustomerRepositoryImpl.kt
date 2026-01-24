@@ -10,9 +10,9 @@ class CustomerRepositoryImpl @Inject constructor(
     private val api: InfracreditApi
 ) : CustomerRepository {
 
-    override suspend fun getCustomers(): Result<List<Customer>> {
+    override suspend fun getCustomers(deleted: Boolean): Result<List<Customer>> {
         return try {
-            val dtos = api.getCustomers()
+            val dtos = api.getCustomers(deleted)
             Result.success(dtos.map { it.toDomain() })
         } catch (e: Exception) {
             Result.failure(e)
@@ -29,12 +29,22 @@ class CustomerRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getCustomerById(id: String): Result<Customer> {
-        // In a real app, this might be a specific API call or filtered from list
         return try {
-            val dtos = api.getCustomers()
+            // Note: In a real production app, you might want a specific GET /customers/{id} endpoint
+            // for efficiency. For now, we filter the list or use the summary if available.
+            val dtos = api.getCustomers(false)
             val customer = dtos.find { it.id == id }?.toDomain()
             if (customer != null) Result.success(customer) 
             else Result.failure(Exception("Customer not found"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateCustomer(id: String, name: String, phone: String?, isDeleted: Boolean): Result<Customer> {
+        return try {
+            val dto = api.updateCustomer(id, CustomerDto(name = name, phone = phone, isDeleted = isDeleted))
+            Result.success(dto.toDomain())
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -45,6 +55,6 @@ class CustomerRepositoryImpl @Inject constructor(
         name = name,
         phone = phone,
         totalDue = totalDue,
-        createdAt = createdAt ?: 0L
+        createdAt = createdAt ?: ""
     )
 }

@@ -5,9 +5,11 @@ import com.example.infracredit.data.remote.AuthInterceptor
 import com.example.infracredit.data.remote.InfracreditApi
 import com.example.infracredit.data.repository.AuthRepositoryImpl
 import com.example.infracredit.data.repository.CustomerRepositoryImpl
+import com.example.infracredit.data.repository.DashboardRepositoryImpl
 import com.example.infracredit.data.repository.TransactionRepositoryImpl
 import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.domain.repository.CustomerRepository
+import com.example.infracredit.domain.repository.DashboardRepository
 import com.example.infracredit.domain.repository.TransactionRepository
 import dagger.Module
 import dagger.Provides
@@ -65,5 +67,11 @@ object AppModule {
     @Singleton
     fun provideTransactionRepository(api: InfracreditApi): TransactionRepository {
         return TransactionRepositoryImpl(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDashboardRepository(api: InfracreditApi): DashboardRepository {
+        return DashboardRepositoryImpl(api)
     }
 }

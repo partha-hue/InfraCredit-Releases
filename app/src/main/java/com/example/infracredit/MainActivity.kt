@@ -4,12 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,10 +24,13 @@ import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.ui.auth.LoginScreen
 import com.example.infracredit.ui.auth.RegisterScreen
 import com.example.infracredit.ui.customer.AddCustomerScreen
+import com.example.infracredit.ui.customer.ContactImportScreen
 import com.example.infracredit.ui.customer.CustomerDetailScreen
 import com.example.infracredit.ui.customer.CustomerListScreen
+import com.example.infracredit.ui.customer.RecycleBinScreen
 import com.example.infracredit.ui.dashboard.DashboardScreen
 import com.example.infracredit.ui.navigation.Screen
+import com.example.infracredit.ui.settings.ProfileEditScreen
 import com.example.infracredit.ui.settings.SettingsScreen
 import com.example.infracredit.ui.theme.InfraCreditTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -89,7 +97,10 @@ fun AppNavigation(startDestination: String) {
             DashboardScreen(
                 onNavigateToAddCustomer = { navController.navigate(Screen.AddCustomer.route) },
                 onNavigateToCustomers = { navController.navigate(Screen.CustomerList.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToDetail = { id -> navController.navigate(Screen.CustomerDetail.createRoute(id)) },
+                onNavigateToCalculator = { navController.navigate(Screen.Calculator.route) },
+                onNavigateToContacts = { navController.navigate(Screen.Contacts.route) }
             )
         }
         composable(Screen.CustomerList.route) {
@@ -119,8 +130,35 @@ fun AppNavigation(startDestination: String) {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                onNavigateToProfileEdit = { navController.navigate(Screen.ProfileEdit.route) },
+                onNavigateToRecycleBin = { navController.navigate(Screen.RecycleBin.route) }
             )
         }
+        composable(Screen.Calculator.route) {
+            PlaceholderScreen("Calculator Screen", onBack = { navController.popBackStack() })
+        }
+        composable(Screen.Contacts.route) {
+            ContactImportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.ProfileEdit.route) {
+            ProfileEditScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.RecycleBin.route) {
+            RecycleBinScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+    }
+}
+
+@Composable
+fun PlaceholderScreen(title: String, onBack: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = title)
     }
 }

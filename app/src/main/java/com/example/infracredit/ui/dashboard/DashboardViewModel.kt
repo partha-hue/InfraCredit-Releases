@@ -4,15 +4,15 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.infracredit.data.remote.InfracreditApi
 import com.example.infracredit.domain.repository.AuthRepository
+import com.example.infracredit.domain.repository.DashboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val api: InfracreditApi,
+    private val repository: DashboardRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
@@ -26,20 +26,21 @@ class DashboardViewModel @Inject constructor(
     fun loadDashboardData() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
-            try {
-                val summary = api.getDashboardSummary()
-                _state.value = DashboardState(
-                    isLoading = false,
-                    totalOutstanding = summary.totalOutstanding,
-                    todayCollection = summary.todayCollection,
-                    activeCustomers = summary.activeCustomers
-                )
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "Failed to load dashboard"
-                )
-            }
+            repository.getSummary()
+                .onSuccess { summary ->
+                    _state.value = DashboardState(
+                        isLoading = false,
+                        totalOutstanding = summary.totalOutstanding,
+                        todayCollection = summary.todayCollection,
+                        activeCustomers = summary.activeCustomers
+                    )
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        error = e.message ?: "Failed to load dashboard"
+                    )
+                }
         }
     }
 

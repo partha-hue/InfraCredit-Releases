@@ -47,6 +47,6 @@ class TransactionRepositoryImpl @Inject constructor(
         amount = amount,
         type = TransactionType.valueOf(type),
         description = description,
-        createdAt = createdAt ?: 0L
+        createdAt = createdAt ?: ""
     )
 }
