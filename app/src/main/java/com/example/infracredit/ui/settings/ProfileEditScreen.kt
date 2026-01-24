@@ -105,23 +105,31 @@ fun ProfileEditScreen(
                     .clickable { launcher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                if (!profilePicBase64.isNullOrEmpty()) {
-                    try {
-                        val imageBytes = Base64.decode(profilePicBase64, Base64.DEFAULT)
-                        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                        bitmap?.let {
-                            Image(
-                                bitmap = it.asImageBitmap(),
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } ?: Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray)
-                    } catch (e: Exception) {
-                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray)
-                    }
+                val bitmap = remember(profilePicBase64) {
+                    if (!profilePicBase64.isNullOrEmpty()) {
+                        try {
+                            val imageBytes = Base64.decode(profilePicBase64, Base64.DEFAULT)
+                            BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } else null
+                }
+
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 } else {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray)
+                    Icon(
+                        Icons.Default.Person, 
+                        contentDescription = null, 
+                        modifier = Modifier.size(60.dp), 
+                        tint = Color.Gray
+                    )
                 }
                 
                 Box(
