@@ -41,6 +41,7 @@ fun CustomerDetailScreen(
     viewModel: TransactionViewModel = hiltViewModel()
 ) {
     val state = viewModel.detailState.value
+    val addTxState = viewModel.addTxState.value
     val ownerProfile = viewModel.ownerProfile.value
     val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
@@ -55,6 +56,27 @@ fun CustomerDetailScreen(
     LaunchedEffect(state.transactions.size) {
         if (state.transactions.isNotEmpty()) {
             listState.animateScrollToItem(state.transactions.size + (state.transactions.groupBy { it.createdAt.split("T")[0] }.size))
+        }
+    }
+
+    // Auto-send WhatsApp logic after transaction added
+    LaunchedEffect(addTxState.isSuccess) {
+        if (addTxState.isSuccess) {
+            state.customer?.let { customer ->
+                val lastTx = state.transactions.lastOrNull()
+                val typeStr = if (lastTx?.type == TransactionType.CREDIT) "added credit" else "received payment"
+                val amountStr = "₹${lastTx?.amount ?: 0.0}"
+                val totalDueStr = "₹${customer.totalDue}"
+                val shopName = ownerProfile?.businessName ?: "Our Shop"
+                val ownerName = ownerProfile?.fullName ?: "Owner"
+                
+                val message = "Hello ${customer.name}, a new transaction of $amountStr has been $typeStr at $shopName ($ownerName). Your total balance due is $totalDueStr. Thank you!"
+                
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.data = Uri.parse("https://api.whatsapp.com/send?phone=${customer.phone}&text=${Uri.encode(message)}")
+                context.startActivity(intent)
+            }
+            viewModel.resetAddTxState()
         }
     }
 
@@ -84,6 +106,9 @@ fun CustomerDetailScreen(
                         }
                     }) {
                         Icon(Icons.Default.Call, contentDescription = "Call")
+                    }
+                    IconButton(onClick = { /* Help info */ }) {
+                        Icon(Icons.Default.HelpOutline, contentDescription = "Info")
                     }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
@@ -120,7 +145,10 @@ fun CustomerDetailScreen(
                 shadowElevation = 12.dp,
                 color = MaterialTheme.colorScheme.surface
             ) {
-                Column {
+                Column(
+                    modifier = Modifier.navigationBarsPadding() // FIX: Avoid overlap with Android navigation bar
+                ) {
+                    // Report and Call Bar
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -129,7 +157,7 @@ fun CustomerDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            modifier = Modifier.clickable { /* Report Logic */ },
+                            modifier = Modifier.weight(1f).clickable { /* Report Logic */ },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFF388E3C), modifier = Modifier.size(18.dp))
@@ -158,6 +186,7 @@ fun CustomerDetailScreen(
 
                     HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
+                    // Balance Due Row
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -166,7 +195,7 @@ fun CustomerDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Balance Due", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { /* Detail logic */ }) {
                             Text(
                                 text = "₹ ${String.format("%.0f", abs(state.customer?.totalDue ?: 0.0))}",
                                 fontSize = 18.sp,
@@ -177,6 +206,7 @@ fun CustomerDetailScreen(
                         }
                     }
                     
+                    // Received / Given Buttons
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -224,6 +254,7 @@ fun CustomerDetailScreen(
                 .padding(padding)
                 .background(if (isSystemInDarkTheme()) Color(0xFF0B141B) else Color(0xFFE5DDD5))
         ) {
+            // WhatsApp Reminder (Top Sticky)
             if ((state.customer?.totalDue ?: 0.0) > 0) {
                 Surface(
                     modifier = Modifier
@@ -283,7 +314,7 @@ fun CustomerDetailScreen(
                             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                 Surface(
                                     color = if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFF8696A0).copy(alpha = 0.8f),
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.padding(vertical = 12.dp)
                                 ) {
                                     Text(
@@ -350,6 +381,7 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
                 elevation = CardDefaults.cardElevation(1.dp)
             ) {
                 Column {
+                    // Bubble Header
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -399,6 +431,7 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
                     }
                 }
             }
+            // Running balance or Due text below bubble
             Text(
                 text = "₹${String.format("%.0f", tx.amount)} Due",
                 fontSize = 11.sp,
