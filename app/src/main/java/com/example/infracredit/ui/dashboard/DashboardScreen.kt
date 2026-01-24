@@ -1,5 +1,6 @@
 package com.example.infracredit.ui.dashboard
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,10 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.infracredit.R
 import com.example.infracredit.domain.model.Customer
 import com.example.infracredit.ui.customer.CustomerViewModel
 
@@ -50,14 +53,26 @@ fun DashboardScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("InfraCredit", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary) },
+            TopAppBar(
+                title = { 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Assuming ic_launcher or a logo exists, otherwise use Icon
+                        Icon(
+                            Icons.Default.AccountBalanceWallet, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("InfraCredit", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp)
+                    }
+                },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
@@ -87,22 +102,18 @@ fun DashboardScreen(
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Summary Section
             SummarySection(dashState)
 
-            // Search Bar
             WhatsAppSearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it }
             )
 
-            // Filters
             FilterChips(
                 selectedFilter = selectedFilter,
                 onFilterSelected = { selectedFilter = it }
             )
 
-            // Customer List
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 80.dp)
@@ -145,7 +156,7 @@ fun SummarySection(state: DashboardState) {
         )
         SummaryCard(
             label = "You'll Give",
-            amount = state.todayCollection.toString(), // Assuming this holds negative/payment values in this context
+            amount = state.todayCollection.toString(), 
             containerColor = Color(0xFFFFEBEE),
             contentColor = Color(0xFFD32F2F),
             modifier = Modifier.weight(1f)

@@ -22,24 +22,37 @@ class AuthViewModel @Inject constructor(
     fun login(phone: String, pass: String) {
         viewModelScope.launch {
             _state.value = AuthState(isLoading = true)
-            val result = repository.login(LoginRequest(phone, pass))
-            if (result.isSuccess) {
-                _state.value = AuthState(isAuthenticated = true)
-            } else {
-                _state.value = AuthState(error = result.exceptionOrNull()?.message ?: "Login failed")
-            }
+            repository.login(LoginRequest(phone, pass))
+                .onSuccess {
+                    _state.value = AuthState(isAuthenticated = true)
+                }
+                .onFailure { e ->
+                    val msg = when {
+                        e.message?.contains("401") == true -> "Incorrect phone or password. Please try again."
+                        e.message?.contains("404") == true -> "Account not found. Please register."
+                        else -> "Connection error. Please check your internet."
+                    }
+                    _state.value = AuthState(error = msg)
+                }
         }
     }
 
-    fun register(name: String, business: String?, phone: String, pass: String) {
+    fun register(phone: String, fullName: String, businessName: String?, pass: String) {
         viewModelScope.launch {
             _state.value = AuthState(isLoading = true)
-            val result = repository.register(RegisterRequest(name, business, phone, pass))
-            if (result.isSuccess) {
-                _state.value = AuthState(isAuthenticated = true)
-            } else {
-                _state.value = AuthState(error = result.exceptionOrNull()?.message ?: "Registration failed")
-            }
+            repository.register(RegisterRequest(phone, fullName, businessName, pass))
+                .onSuccess {
+                    _state.value = AuthState(isAuthenticated = true)
+                }
+                .onFailure { e ->
+                    _state.value = AuthState(error = "Registration failed. Phone might already be in use.")
+                }
         }
     }
 }
+
+data class AuthState(
+    val isLoading: Boolean = false,
+    val isAuthenticated: Boolean = false,
+    val error: String? = null
+)

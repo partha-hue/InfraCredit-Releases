@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +30,7 @@ import com.example.infracredit.domain.model.Transaction
 import com.example.infracredit.domain.model.TransactionType
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +51,6 @@ fun CustomerDetailScreen(
         viewModel.loadCustomerData()
     }
 
-    // Scroll to bottom when new transactions are loaded
     LaunchedEffect(state.transactions.size) {
         if (state.transactions.isNotEmpty()) {
             listState.animateScrollToItem(state.transactions.size + (state.transactions.groupBy { it.createdAt.split("T")[0] }.size))
@@ -69,7 +70,7 @@ fun CustomerDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -82,6 +83,9 @@ fun CustomerDetailScreen(
                         }
                     }) {
                         Icon(Icons.Default.Call, contentDescription = "Call")
+                    }
+                    IconButton(onClick = { /* Help logic */ }) {
+                        Icon(Icons.Default.HelpOutline, contentDescription = "Help")
                     }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
@@ -119,26 +123,72 @@ fun CustomerDetailScreen(
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Column {
+                    // Report and Call Bar (Screenshot 2 style)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.clickable { /* Report Logic */ },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFF388E3C), modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Report", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF388E3C), modifier = Modifier.size(16.dp))
+                        }
+                        
+                        Button(
+                            onClick = { 
+                                state.customer?.phone?.let { phone ->
+                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                                    context.startActivity(intent)
+                                }
+                            },
+                            modifier = Modifier.weight(1f).height(42.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D3B)),
+                            shape = RoundedCornerShape(21.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Call", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    // Balance Due (Screenshot 2 style)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Balance Due", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            text = "₹ ${String.format("%.0f", Math.abs(state.customer?.totalDue ?: 0.0))}",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if ((state.customer?.totalDue ?: 0.0) > 0) Color(0xFFD32F2F) else Color(0xFF388E3C)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { /* Detail navigation */ }
+                        ) {
+                            Text(
+                                text = "₹ ${String.format("%.0f", abs(state.customer?.totalDue ?: 0.0))}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if ((state.customer?.totalDue ?: 0.0) >= 0) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                            )
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Red, modifier = Modifier.size(20.dp))
+                        }
                     }
                     
+                    // Received / Given Buttons (Screenshot 2 style)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
+                            .padding(bottom = 12.dp, start = 16.dp, end = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Button(
@@ -146,30 +196,28 @@ fun CustomerDetailScreen(
                                 dialogType = TransactionType.PAYMENT
                                 showAddDialog = true 
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(vertical = 12.dp)
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            shape = RoundedCornerShape(25.dp)
                         ) {
-                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.Red, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.Red, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("You Got", color = Color.Red, fontWeight = FontWeight.Bold)
+                            Text("Received", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                         Button(
                             onClick = { 
                                 dialogType = TransactionType.CREDIT
                                 showAddDialog = true 
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF388E3C).copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(vertical = 12.dp)
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            shape = RoundedCornerShape(25.dp)
                         ) {
-                            Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFF388E3C), modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFF006D3B), modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("You Gave", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
+                            Text("Given", color = Color(0xFF006D3B), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                     }
                 }
@@ -182,6 +230,40 @@ fun CustomerDetailScreen(
                 .padding(padding)
                 .background(if (isSystemInDarkTheme()) Color(0xFF0B141B) else Color(0xFFE5DDD5))
         ) {
+            // WhatsApp Reminder (Top Sticky)
+            if ((state.customer?.totalDue ?: 0.0) > 0) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    color = if (isSystemInDarkTheme()) Color(0xFF1F2C34) else Color(0xFFE7F3EF),
+                    shape = RoundedCornerShape(8.dp),
+                    tonalElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .clickable {
+                                state.customer?.let { customer ->
+                                    val message = "Hello ${customer.name}, your total due is ₹${customer.totalDue}. Please clear it soon. Thank you!"
+                                    val intent = Intent(Intent.ACTION_VIEW)
+                                    intent.data = Uri.parse("https://api.whatsapp.com/send?phone=${customer.phone}&text=${Uri.encode(message)}")
+                                    context.startActivity(intent)
+                                }
+                            },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color(0xFF00A884))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Send WhatsApp Reminder", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isSystemInDarkTheme()) Color.White else Color.Black)
+                            Text("Remind ${state.customer?.name} about ₹${state.customer?.totalDue}", fontSize = 12.sp, color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray)
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
+                    }
+                }
+            }
+
             if (state.isLoading && state.transactions.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -190,8 +272,8 @@ fun CustomerDetailScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     val grouped = state.transactions.groupBy { 
                         try {
@@ -205,16 +287,16 @@ fun CustomerDetailScreen(
                         item {
                             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                 Surface(
-                                    color = if (isSystemInDarkTheme()) Color(0xFF182229) else Color(0xFFD1E4EF),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.padding(vertical = 8.dp)
+                                    color = if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFF8696A0).copy(alpha = 0.8f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.padding(vertical = 12.dp)
                                 ) {
                                     Text(
                                         text = date,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSystemInDarkTheme()) Color(0xFF8696A0) else Color(0xFF4A5F6B)
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.White
                                     )
                                 }
                             }
@@ -252,28 +334,34 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = if (isCredit) Arrangement.End else Arrangement.Start
     ) {
         Column(
-            modifier = Modifier.widthIn(max = 300.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.widthIn(max = 280.dp),
+            horizontalAlignment = if (isCredit) Alignment.End else Alignment.Start
         ) {
             Card(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(
+                    topStart = 8.dp,
+                    topEnd = 8.dp,
+                    bottomStart = if (isCredit) 8.dp else 0.dp,
+                    bottomEnd = if (isCredit) 0.dp else 8.dp
+                ),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isDark) Color(0xFF1F2C34) else Color.White
                 ),
-                elevation = CardDefaults.cardElevation(2.dp)
+                elevation = CardDefaults.cardElevation(1.dp)
             ) {
                 Column {
+                    // Bubble Header like Screenshot 2
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(if (isDark) Color(0xFF232D36) else Color(0xFFF0F5F7))
+                            .background(if (isDark) Color(0xFF232D36) else Color(0xFFE1ECEF))
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = "Added by $ownerName",
+                            text = "Added by ${ownerName.take(15)}...",
                             fontSize = 11.sp,
                             color = if (isDark) Color(0xFF8696A0) else Color(0xFF6B8A8D),
                             fontWeight = FontWeight.Bold
@@ -287,7 +375,7 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
                         Icon(
                             imageVector = if (isCredit) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(18.dp),
                             tint = if (isCredit) Color(0xFF25D366) else Color(0xFFF15C6D)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
@@ -315,11 +403,12 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
                     }
                 }
             }
+            // Running balance below bubble like Screenshot 2
             Text(
-                text = "₹${String.format("%.0f", tx.amount)} Balance Due",
+                text = "₹${String.format("%.0f", tx.amount)} Due",
                 fontSize = 11.sp,
                 color = if (isDark) Color(0xFF8696A0) else Color.DarkGray,
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
             )
         }
     }
@@ -337,7 +426,7 @@ fun AddTransactionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (type == TransactionType.CREDIT) "You Gave (Credit)" else "You Got (Payment)") },
+        title = { Text(if (type == TransactionType.CREDIT) "You Gave (Credit)" else "You Got (Received)") },
         text = {
             Column {
                 OutlinedTextField(
@@ -353,7 +442,7 @@ fun AddTransactionDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Notes (e.g. Items bought)") },
+                    label = { Text("Description") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
