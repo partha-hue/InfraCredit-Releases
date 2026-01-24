@@ -33,6 +33,6 @@ interface InfracreditApi {
     suspend fun addTransaction(@Body transaction: TransactionDto): TransactionDto
 
     companion object {
-        const val BASE_URL = "https://api.infracredite.com/v1/" // Placeholder
+        const val BASE_URL = "https://infracredit-backend.onrender.com/v1/"
     }
 }
