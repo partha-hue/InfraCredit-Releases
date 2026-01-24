@@ -11,6 +11,7 @@ import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.domain.repository.CustomerRepository
 import com.example.infracredit.domain.repository.DashboardRepository
 import com.example.infracredit.domain.repository.TransactionRepository
+import com.example.infracredit.ui.theme.ThemeManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -41,7 +42,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideInfracreditApi(client: OkHttpClient): InfracreditApi {
-        val json = Json { ignoreUnknownKeys = true }
+        val json = Json { 
+            ignoreUnknownKeys = true
+            encodeDefaults = true // Crucial for sending default values like isDeleted=false
+        }
         val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
             .baseUrl(InfracreditApi.BASE_URL)
@@ -73,5 +77,11 @@ object AppModule {
     @Singleton
     fun provideDashboardRepository(api: InfracreditApi): DashboardRepository {
         return DashboardRepositoryImpl(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideThemeManager(): ThemeManager {
+        return ThemeManager()
     }
 }

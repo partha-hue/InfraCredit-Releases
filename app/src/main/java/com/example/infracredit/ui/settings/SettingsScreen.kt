@@ -1,5 +1,9 @@
 package com.example.infracredit.ui.settings
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,7 +38,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state = viewModel.profileState.value
-    var isDarkMode by remember { mutableStateOf(false) }
+    val isDarkMode by viewModel.isDarkMode
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -43,8 +49,7 @@ fun SettingsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                }
             )
         }
     ) { padding ->
@@ -52,13 +57,21 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF8F9FA))
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
         ) {
             // Profile Header
             ProfileHeader(
                 profile = state.profile,
-                isLoading = state.isLoading
+                isLoading = state.isLoading,
+                onImageSelect = { uri ->
+                    // Simplified: In a real app, upload this URI to Cloudinary/S3
+                    viewModel.updateProfile(
+                        fullName = state.profile?.fullName ?: "",
+                        businessName = state.profile?.businessName,
+                        profilePic = uri.toString()
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -77,7 +90,6 @@ fun SettingsScreen(
                     subtitle = "Restore deleted customers",
                     onClick = onNavigateToRecycleBin
                 )
-                SettingsItem(icon = Icons.Default.Language, title = "App Language", subtitle = "English")
             }
 
             SettingsSection(title = "Display") {
@@ -85,13 +97,25 @@ fun SettingsScreen(
                     icon = Icons.Default.DarkMode,
                     title = "Dark Mode",
                     checked = isDarkMode,
-                    onCheckedChange = { isDarkMode = it }
+                    onCheckedChange = { viewModel.toggleDarkMode() }
                 )
             }
 
             SettingsSection(title = "Security & Help") {
-                SettingsItem(icon = Icons.Default.Lock, title = "App Lock", subtitle = "Secure your ledger with PIN/Fingerprint")
-                SettingsItem(icon = Icons.Default.HelpOutline, title = "Help & Support", subtitle = "Contact us for issues")
+                SettingsItem(
+                    icon = Icons.Default.Lock, 
+                    title = "App Lock", 
+                    subtitle = "Secure your ledger with PIN/Fingerprint"
+                )
+                SettingsItem(
+                    icon = Icons.Default.HelpOutline, 
+                    title = "Help & Support", 
+                    subtitle = "Contact us for issues",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/infracredit_support"))
+                        context.startActivity(intent)
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -101,7 +125,7 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { viewModel.logout(onLogout) },
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -126,10 +150,20 @@ fun SettingsScreen(
 }
 
 @Composable
-fun ProfileHeader(profile: ProfileDto?, isLoading: Boolean) {
+fun ProfileHeader(
+    profile: ProfileDto?, 
+    isLoading: Boolean,
+    onImageSelect: (Uri) -> Unit
+) {
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { onImageSelect(it) }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
@@ -140,17 +174,18 @@ fun ProfileHeader(profile: ProfileDto?, isLoading: Boolean) {
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE9ECEF)),
+                        .background(Color.LightGray.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(32.dp))
                     } else {
+                        // In real app, use Coil or Glide to load profile.profilePic
                         Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray)
                     }
                 }
                 IconButton(
-                    onClick = { /* TODO: Upload Image */ },
+                    onClick = { launcher.launch("image/*") },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .size(32.dp)
@@ -168,8 +203,6 @@ fun ProfileHeader(profile: ProfileDto?, isLoading: Boolean) {
                 profile.businessName?.let {
                     ShopChip(label = it)
                 }
-            } else if (!isLoading) {
-                Text("Error loading profile", color = Color.Red)
             }
         }
     }
@@ -202,7 +235,7 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
-        Surface(color = Color.White) {
+        Surface(color = MaterialTheme.colorScheme.surface) {
             Column {
                 content()
             }

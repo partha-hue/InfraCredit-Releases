@@ -58,8 +58,12 @@ class CustomerViewModel @Inject constructor(
         viewModelScope.launch {
             repository.updateCustomer(id, name, phone, isDeleted)
                 .onSuccess {
+                    // Refetch both lists to ensure UI is in sync
                     getCustomers(false)
                     getCustomers(true)
+                }
+                .onFailure {
+                    // Handle error if needed
                 }
         }
     }

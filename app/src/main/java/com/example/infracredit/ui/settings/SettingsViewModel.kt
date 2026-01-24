@@ -6,17 +6,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.infracredit.data.remote.dto.ProfileDto
 import com.example.infracredit.domain.repository.AuthRepository
+import com.example.infracredit.ui.theme.ThemeManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val themeManager: ThemeManager
 ) : ViewModel() {
 
     private val _profileState = mutableStateOf(ProfileState())
     val profileState: State<ProfileState> = _profileState
+
+    val isDarkMode: State<Boolean> = themeManager.isDarkMode
 
     init {
         loadProfile()
@@ -35,10 +39,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateProfile(fullName: String, businessName: String?) {
+    fun toggleDarkMode() {
+        themeManager.toggleTheme()
+    }
+
+    fun updateProfile(fullName: String, businessName: String?, profilePic: String? = null) {
         viewModelScope.launch {
             _profileState.value = _profileState.value.copy(isLoading = true)
-            authRepository.updateProfile(ProfileDto(fullName = fullName, businessName = businessName))
+            authRepository.updateProfile(ProfileDto(fullName = fullName, businessName = businessName, profilePic = profilePic))
                 .onSuccess { profile ->
                     _profileState.value = ProfileState(profile = profile, isUpdateSuccess = true)
                 }

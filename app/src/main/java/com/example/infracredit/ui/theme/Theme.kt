@@ -7,9 +7,18 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+private val DarkColorScheme = darkColorScheme(
+    primary = md_theme_light_primary, 
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
+    onBackground = Color.White,
+    onSurface = Color.White
+)
 
 private val LightColorScheme = lightColorScheme(
     primary = md_theme_light_primary,
@@ -38,14 +47,7 @@ fun InfraCreditTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    // For Fintech apps, we often prefer a consistent light theme or a very controlled dark theme.
-    // For Phase 1, we will stick to a professional light theme as the primary experience.
-    val colorScheme = if (darkTheme) {
-        // Fallback or defined DarkColorScheme
-        LightColorScheme // Keeping it light for "Calm" feel as requested for now
-    } else {
-        LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {

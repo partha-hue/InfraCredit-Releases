@@ -8,6 +8,7 @@ data class ProfileDto(
     val phone: String? = null,
     val fullName: String,
     val businessName: String? = null,
+    val profilePic: String? = null,
     val createdAt: String? = null
 )
 

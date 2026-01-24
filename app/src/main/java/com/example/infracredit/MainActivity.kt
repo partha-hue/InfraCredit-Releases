@@ -23,6 +23,7 @@ import androidx.navigation.navArgument
 import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.ui.auth.LoginScreen
 import com.example.infracredit.ui.auth.RegisterScreen
+import com.example.infracredit.ui.calculator.CalculatorScreen
 import com.example.infracredit.ui.customer.AddCustomerScreen
 import com.example.infracredit.ui.customer.ContactImportScreen
 import com.example.infracredit.ui.customer.CustomerDetailScreen
@@ -33,6 +34,7 @@ import com.example.infracredit.ui.navigation.Screen
 import com.example.infracredit.ui.settings.ProfileEditScreen
 import com.example.infracredit.ui.settings.SettingsScreen
 import com.example.infracredit.ui.theme.InfraCreditTheme
+import com.example.infracredit.ui.theme.ThemeManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -41,12 +43,16 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository
+    
+    @Inject
+    lateinit var themeManager: ThemeManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             var startDestination by remember { mutableStateOf<String?>(null) }
+            val isDarkMode by themeManager.isDarkMode
             
             LaunchedEffect(Unit) {
                 startDestination = if (authRepository.isAuthenticated()) {
@@ -56,7 +62,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            InfraCreditTheme {
+            InfraCreditTheme(darkTheme = isDarkMode) {
                 startDestination?.let { destination ->
                     AppNavigation(destination)
                 }
@@ -136,7 +142,7 @@ fun AppNavigation(startDestination: String) {
             )
         }
         composable(Screen.Calculator.route) {
-            PlaceholderScreen("Calculator Screen", onBack = { navController.popBackStack() })
+            CalculatorScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable(Screen.Contacts.route) {
             ContactImportScreen(
