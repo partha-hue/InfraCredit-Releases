@@ -35,7 +35,6 @@ class SettingsViewModel @Inject constructor(
             authRepository.getProfile()
                 .onSuccess { profile ->
                     _profileState.value = ProfileState(profile = profile)
-                    themeManager.setDarkMode(false) // Default or load from local storage if implemented
                 }
                 .onFailure { error ->
                     _profileState.value = ProfileState(error = error.message)
@@ -47,10 +46,23 @@ class SettingsViewModel @Inject constructor(
         themeManager.toggleTheme()
     }
 
-    fun updateProfile(fullName: String, businessName: String?, profilePic: String? = null) {
+    fun updateProfile(
+        fullName: String, 
+        businessName: String?, 
+        profilePic: String? = null,
+        email: String? = null,
+        address: String? = null
+    ) {
         viewModelScope.launch {
             _profileState.value = _profileState.value.copy(isLoading = true)
-            authRepository.updateProfile(ProfileDto(fullName = fullName, businessName = businessName, profilePic = profilePic))
+            val updatedProfile = ProfileDto(
+                fullName = fullName, 
+                businessName = businessName, 
+                profilePic = profilePic,
+                email = email,
+                address = address
+            )
+            authRepository.updateProfile(updatedProfile)
                 .onSuccess { profile ->
                     _profileState.value = ProfileState(profile = profile, isUpdateSuccess = true)
                 }

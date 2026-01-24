@@ -148,7 +148,7 @@ fun LoginScreen(
                     onClick = { settingsViewModel.forgotPassword(resetPhone) },
                     enabled = resetPhone.isNotBlank() && !passwordState.isLoading
                 ) {
-                    if (passwordState.isLoading) CircularProgressIndicator(size = 20.dp)
+                    if (passwordState.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp))
                     else Text("Send Link")
                 }
             },

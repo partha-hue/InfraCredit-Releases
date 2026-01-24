@@ -9,6 +9,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -42,9 +43,17 @@ fun CustomerDetailScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var dialogType by remember { mutableStateOf(TransactionType.CREDIT) }
     var showMenu by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         viewModel.loadCustomerData()
+    }
+
+    // Scroll to bottom when new transactions are loaded
+    LaunchedEffect(state.transactions.size) {
+        if (state.transactions.isNotEmpty()) {
+            listState.animateScrollToItem(state.transactions.size + (state.transactions.groupBy { it.createdAt.split("T")[0] }.size))
+        }
     }
 
     Scaffold(
@@ -98,30 +107,9 @@ fun CustomerDetailScreen(
                                 },
                                 leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
                             )
-                            DropdownMenuItem(
-                                text = { Text("Save to Contacts") },
-                                onClick = { 
-                                    showMenu = false
-                                    state.customer?.let { customer ->
-                                        val intent = Intent(Intent.ACTION_INSERT).apply {
-                                            type = android.provider.ContactsContract.RawContacts.CONTENT_TYPE
-                                            putExtra(android.provider.ContactsContract.Intents.Insert.NAME, customer.name)
-                                            putExtra(android.provider.ContactsContract.Intents.Insert.PHONE, customer.phone)
-                                        }
-                                        context.startActivity(intent)
-                                    }
-                                },
-                                leadingIcon = { Icon(Icons.Default.ContactPage, contentDescription = null) }
-                            )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                }
             )
         },
         bottomBar = {
@@ -194,72 +182,46 @@ fun CustomerDetailScreen(
                 .padding(padding)
                 .background(if (isSystemInDarkTheme()) Color(0xFF0B141B) else Color(0xFFE5DDD5))
         ) {
-            // WhatsApp Reminder
-            if ((state.customer?.totalDue ?: 0.0) > 0) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    color = if (isSystemInDarkTheme()) Color(0xFF1F2C34) else Color(0xFFE7F3EF),
-                    shape = RoundedCornerShape(8.dp),
+            if (state.isLoading && state.transactions.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .clickable {
-                                state.customer?.let { customer ->
-                                    val message = "Hello ${customer.name}, your total due is ₹${customer.totalDue}. Please clear it soon. Thank you!"
-                                    val intent = Intent(Intent.ACTION_VIEW)
-                                    intent.data = Uri.parse("https://api.whatsapp.com/send?phone=${customer.phone}&text=${Uri.encode(message)}")
-                                    context.startActivity(intent)
-                                }
-                            },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color(0xFF00A884))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Send WhatsApp Reminder", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isSystemInDarkTheme()) Color.White else Color.Black)
-                            Text("Remind ${state.customer?.name} about ₹${state.customer?.totalDue}", fontSize = 12.sp, color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray)
+                    val grouped = state.transactions.groupBy { 
+                        try {
+                            ZonedDateTime.parse(it.createdAt).format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+                        } catch (e: Exception) {
+                            "Recent"
                         }
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
                     }
-                }
-            }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val grouped = state.transactions.groupBy { 
-                    try {
-                        ZonedDateTime.parse(it.createdAt).format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
-                    } catch (e: Exception) {
-                        "Recent"
-                    }
-                }
-
-                grouped.forEach { (date, txs) ->
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Surface(
-                                color = if (isSystemInDarkTheme()) Color(0xFF182229) else Color(0xFFD1E4EF),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = date,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSystemInDarkTheme()) Color(0xFF8696A0) else Color(0xFF4A5F6B)
-                                )
+                    grouped.forEach { (date, txs) ->
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Surface(
+                                    color = if (isSystemInDarkTheme()) Color(0xFF182229) else Color(0xFFD1E4EF),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = date,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSystemInDarkTheme()) Color(0xFF8696A0) else Color(0xFF4A5F6B)
+                                    )
+                                }
                             }
                         }
-                    }
-                    items(txs) { tx ->
-                        WhatsAppTransactionBubble(tx, ownerProfile?.fullName ?: "Owner")
+                        items(txs) { tx ->
+                            WhatsAppTransactionBubble(tx, ownerProfile?.fullName ?: "Owner")
+                        }
                     }
                 }
             }
