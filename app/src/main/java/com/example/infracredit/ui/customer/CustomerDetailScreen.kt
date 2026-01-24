@@ -59,23 +59,9 @@ fun CustomerDetailScreen(
         }
     }
 
-    // Auto-send WhatsApp logic after transaction added
+    // REMOVED: Auto-send WhatsApp logic after transaction added
     LaunchedEffect(addTxState.isSuccess) {
         if (addTxState.isSuccess) {
-            state.customer?.let { customer ->
-                val lastTx = state.transactions.lastOrNull()
-                val typeStr = if (lastTx?.type == TransactionType.CREDIT) "added credit" else "received payment"
-                val amountStr = "₹${lastTx?.amount ?: 0.0}"
-                val totalDueStr = "₹${customer.totalDue}"
-                val shopName = ownerProfile?.businessName ?: "Our Shop"
-                val ownerName = ownerProfile?.fullName ?: "Owner"
-                
-                val message = "Hello ${customer.name}, a new transaction of $amountStr has been $typeStr at $shopName ($ownerName). Your total balance due is $totalDueStr. Thank you!"
-                
-                val intent = Intent(Intent.ACTION_VIEW)
-                intent.data = Uri.parse("https://api.whatsapp.com/send?phone=${customer.phone}&text=${Uri.encode(message)}")
-                context.startActivity(intent)
-            }
             viewModel.resetAddTxState()
         }
     }
@@ -146,7 +132,9 @@ fun CustomerDetailScreen(
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Column(
-                    modifier = Modifier.navigationBarsPadding() // FIX: Avoid overlap with Android navigation bar
+                    modifier = Modifier
+                        .navigationBarsPadding() // FIX: Avoid overlap with Android navigation bar
+                        .padding(bottom = 8.dp) // Added slight extra padding
                 ) {
                     // Report and Call Bar
                     Row(
@@ -206,7 +194,7 @@ fun CustomerDetailScreen(
                         }
                     }
                     
-                    // Received / Given Buttons
+                    // Received / Given Buttons - Refined Visibility
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -218,30 +206,30 @@ fun CustomerDetailScreen(
                                 dialogType = TransactionType.PAYMENT
                                 showAddDialog = true 
                             },
-                            modifier = Modifier.weight(1f).height(52.dp),
+                            modifier = Modifier.weight(1f).height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Red.copy(alpha = 0.8f)),
+                            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.Red.copy(alpha = 0.7f)),
                             shape = RoundedCornerShape(12.dp),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                         ) {
-                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.Red, modifier = Modifier.size(22.dp))
+                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.Red, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Received", color = Color.Red, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                            Text("Received", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                         Button(
                             onClick = { 
                                 dialogType = TransactionType.CREDIT
                                 showAddDialog = true 
                             },
-                            modifier = Modifier.weight(1f).height(52.dp),
+                            modifier = Modifier.weight(1f).height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF006D3B).copy(alpha = 0.8f)),
+                            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF006D3B).copy(alpha = 0.7f)),
                             shape = RoundedCornerShape(12.dp),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                         ) {
-                            Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFF006D3B), modifier = Modifier.size(22.dp))
+                            Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFF006D3B), modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Given", color = Color(0xFF006D3B), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                            Text("Given", color = Color(0xFF006D3B), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                     }
                 }
@@ -431,7 +419,7 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
                     }
                 }
             }
-            // Running balance or Due text below bubble
+            // Running balance below bubble
             Text(
                 text = "₹${String.format("%.0f", tx.amount)} Due",
                 fontSize = 11.sp,
