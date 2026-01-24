@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.infracredit.domain.model.Transaction
 import com.example.infracredit.domain.model.TransactionType
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
@@ -84,9 +85,6 @@ fun CustomerDetailScreen(
                     }) {
                         Icon(Icons.Default.Call, contentDescription = "Call")
                     }
-                    IconButton(onClick = { /* Help logic */ }) {
-                        Icon(Icons.Default.HelpOutline, contentDescription = "Help")
-                    }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More")
@@ -118,12 +116,11 @@ fun CustomerDetailScreen(
         },
         bottomBar = {
             Surface(
-                tonalElevation = 8.dp,
-                shadowElevation = 8.dp,
+                tonalElevation = 12.dp,
+                shadowElevation = 12.dp,
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Column {
-                    // Report and Call Bar (Screenshot 2 style)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -148,7 +145,7 @@ fun CustomerDetailScreen(
                                     context.startActivity(intent)
                                 }
                             },
-                            modifier = Modifier.weight(1f).height(42.dp),
+                            modifier = Modifier.weight(1.2f).height(42.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D3B)),
                             shape = RoundedCornerShape(21.dp),
                             contentPadding = PaddingValues(0.dp)
@@ -161,7 +158,6 @@ fun CustomerDetailScreen(
 
                     HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-                    // Balance Due (Screenshot 2 style)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -170,10 +166,7 @@ fun CustomerDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Balance Due", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { /* Detail navigation */ }
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "₹ ${String.format("%.0f", abs(state.customer?.totalDue ?: 0.0))}",
                                 fontSize = 18.sp,
@@ -184,11 +177,10 @@ fun CustomerDetailScreen(
                         }
                     }
                     
-                    // Received / Given Buttons (Screenshot 2 style)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 12.dp, start = 16.dp, end = 16.dp),
+                            .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Button(
@@ -196,28 +188,30 @@ fun CustomerDetailScreen(
                                 dialogType = TransactionType.PAYMENT
                                 showAddDialog = true 
                             },
-                            modifier = Modifier.weight(1f).height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                            shape = RoundedCornerShape(25.dp)
+                            modifier = Modifier.weight(1f).height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Red.copy(alpha = 0.8f)),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                         ) {
-                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.Red, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.Red, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Received", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Received", color = Color.Red, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                         }
                         Button(
                             onClick = { 
                                 dialogType = TransactionType.CREDIT
                                 showAddDialog = true 
                             },
-                            modifier = Modifier.weight(1f).height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                            shape = RoundedCornerShape(25.dp)
+                            modifier = Modifier.weight(1f).height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF006D3B).copy(alpha = 0.8f)),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                         ) {
-                            Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFF006D3B), modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFF006D3B), modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Given", color = Color(0xFF006D3B), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Given", color = Color(0xFF006D3B), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -230,7 +224,6 @@ fun CustomerDetailScreen(
                 .padding(padding)
                 .background(if (isSystemInDarkTheme()) Color(0xFF0B141B) else Color(0xFFE5DDD5))
         ) {
-            // WhatsApp Reminder (Top Sticky)
             if ((state.customer?.totalDue ?: 0.0) > 0) {
                 Surface(
                     modifier = Modifier
@@ -238,7 +231,7 @@ fun CustomerDetailScreen(
                         .padding(8.dp),
                     color = if (isSystemInDarkTheme()) Color(0xFF1F2C34) else Color(0xFFE7F3EF),
                     shape = RoundedCornerShape(8.dp),
-                    tonalElevation = 2.dp
+                    tonalElevation = 4.dp
                 ) {
                     Row(
                         modifier = Modifier
@@ -277,7 +270,9 @@ fun CustomerDetailScreen(
                 ) {
                     val grouped = state.transactions.groupBy { 
                         try {
-                            ZonedDateTime.parse(it.createdAt).format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+                            ZonedDateTime.parse(it.createdAt)
+                                .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+                                .format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
                         } catch (e: Exception) {
                             "Recent"
                         }
@@ -288,12 +283,12 @@ fun CustomerDetailScreen(
                             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                 Surface(
                                     color = if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFF8696A0).copy(alpha = 0.8f),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.padding(vertical = 12.dp)
                                 ) {
                                     Text(
                                         text = date,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = Color.White
@@ -327,7 +322,9 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
     val isCredit = tx.type == TransactionType.CREDIT
     val isDark = isSystemInDarkTheme()
     val timeText = try {
-        ZonedDateTime.parse(tx.createdAt).format(DateTimeFormatter.ofPattern("hh:mm a"))
+        ZonedDateTime.parse(tx.createdAt)
+            .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+            .format(DateTimeFormatter.ofPattern("hh:mm a"))
     } catch (e: Exception) {
         ""
     }
@@ -353,7 +350,6 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
                 elevation = CardDefaults.cardElevation(1.dp)
             ) {
                 Column {
-                    // Bubble Header like Screenshot 2
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -403,7 +399,6 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
                     }
                 }
             }
-            // Running balance below bubble like Screenshot 2
             Text(
                 text = "₹${String.format("%.0f", tx.amount)} Due",
                 fontSize = 11.sp,
@@ -442,7 +437,7 @@ fun AddTransactionDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
+                    label = { Text("Description (Optional)") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
