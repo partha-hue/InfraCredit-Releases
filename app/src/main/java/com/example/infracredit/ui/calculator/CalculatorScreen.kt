@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -66,7 +65,7 @@ fun CalculatorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(16.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
@@ -82,14 +81,14 @@ fun CalculatorScreen(
                 Text(
                     text = expression,
                     fontSize = 24.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End
                 )
                 Text(
                     text = result,
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.End
                 )
             }
@@ -112,11 +111,7 @@ fun CalculatorScreen(
                             }
                             "=" -> {
                                 if (expression.isNotEmpty()) {
-                                    result = try {
-                                        evaluateExpression(expression).toString()
-                                    } catch (e: Exception) {
-                                        "Error"
-                                    }
+                                    result = evaluateExpression(expression)
                                 }
                             }
                             "ADD" -> {
@@ -139,12 +134,9 @@ fun CalculatorScreen(
             customers = customerViewModel.listState.value.customers,
             onDismiss = { showCustomerPicker = false },
             onSelect = { customer ->
-                val amountValue = result.toDoubleOrNull() ?: 0.0
+                val amountValue = result.replace(",", "").toDoubleOrNull() ?: 0.0
                 if (amountValue > 0) {
-                    // Manual refresh bypass: Directly call add transaction
-                    // For the "Direct Add" we'll use a simplified flow
-                    // Note: Ideally this should be handled by a UseCase
-                    // transactionViewModel.addTransactionToSpecificCustomer(customer.id, amountValue, TransactionType.CREDIT, "Added from Calculator")
+                    transactionViewModel.addTransaction(amountValue, TransactionType.CREDIT, "Added from Calculator", customerId = customer.id)
                 }
                 showCustomerPicker = false
                 onNavigateBack()
@@ -168,7 +160,7 @@ fun CalcButton(text: String, onClick: () -> Unit) {
             text == "=" -> MaterialTheme.colorScheme.primary
             isOperator -> MaterialTheme.colorScheme.primaryContainer
             isSpecial -> Color.LightGray.copy(alpha = 0.3f)
-            else -> Color.White
+            else -> MaterialTheme.colorScheme.surface
         },
         shadowElevation = 2.dp
     ) {
@@ -177,7 +169,7 @@ fun CalcButton(text: String, onClick: () -> Unit) {
                 text = text,
                 fontSize = if (text == "ADD") 14.sp else 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (text == "=" || text == "ADD") Color.White else Color.Black
+                color = if (text == "=" || text == "ADD") Color.White else MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -212,27 +204,32 @@ fun CustomerPickerDialog(
     }
 }
 
-private fun evaluateExpression(expression: String): Double {
+private fun evaluateExpression(expression: String): String {
+    if (expression.isEmpty()) return "0"
+    
     val exp = expression.replace("×", "*").replace("÷", "/")
     return try {
-        val parts = exp.split(Regex("(?=[-+*/])|(?<=[-+*/])"))
-        if (parts.size < 3) return parts[0].toDoubleOrNull() ?: 0.0
+        // Simple regex to split but keep delimiters
+        val parts = exp.split(Regex("(?<=[-+*/])|(?=[-+*/])")).filter { it.isNotBlank() }
+        if (parts.isEmpty()) return "0"
         
-        var res = parts[0].toDouble()
+        var res = parts[0].toDoubleOrNull() ?: 0.0
         var i = 1
         while (i < parts.size) {
             val op = parts[i]
-            val nextVal = parts[i+1].toDouble()
-            when (op) {
-                "+" -> res += nextVal
-                "-" -> res -= nextVal
-                "*" -> res *= nextVal
-                "/" -> res /= nextVal
+            if (i + 1 < parts.size) {
+                val nextVal = parts[i + 1].toDoubleOrNull() ?: 0.0
+                when (op) {
+                    "+" -> res += nextVal
+                    "-" -> res -= nextVal
+                    "*" -> res *= nextVal
+                    "/" -> if (nextVal != 0.0) res /= nextVal else return "Error"
+                }
             }
             i += 2
         }
-        res
+        if (res % 1 == 0.0) res.toInt().toString() else String.format("%.2f", res)
     } catch (e: Exception) {
-        0.0
+        "Error"
     }
 }

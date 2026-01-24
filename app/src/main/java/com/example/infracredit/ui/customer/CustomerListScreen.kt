@@ -1,5 +1,6 @@
 package com.example.infracredit.ui.customer
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,32 +37,56 @@ fun CustomerListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Customers") },
+                title = { Text("My Customers", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToAdd) {
+            FloatingActionButton(
+                onClick = onNavigateToAdd,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Customer")
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)) {
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (state.error != null) {
-                Text(text = state.error, color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
+                Text(
+                    text = state.error, 
+                    color = MaterialTheme.colorScheme.error, 
+                    modifier = Modifier.align(Alignment.Center).padding(16.dp)
+                )
             } else if (state.customers.isEmpty()) {
-                Text(text = "No customers yet", modifier = Modifier.align(Alignment.Center))
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "No customers yet", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = onNavigateToAdd) {
+                        Text("Add Your First Customer")
+                    }
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(state.customers) { customer ->
                         CustomerItem(customer = customer, onClick = { onNavigateToDetail(customer.id) })
@@ -79,7 +104,10 @@ fun CustomerItem(customer: Customer, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
@@ -88,12 +116,23 @@ fun CustomerItem(customer: Customer, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(text = customer.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                customer.phone?.let { Text(text = it, fontSize = 14.sp, color = Color.Gray) }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = customer.name, 
+                    fontSize = 18.sp, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                customer.phone?.let { 
+                    Text(
+                        text = it, 
+                        fontSize = 14.sp, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant 
+                    ) 
+                }
             }
             Text(
-                text = "₹ ${customer.totalDue}",
+                text = "₹ ${String.format("%.0f", Math.abs(customer.totalDue))}",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (customer.totalDue > 0) Color(0xFFD32F2F) else Color(0xFF388E3C)

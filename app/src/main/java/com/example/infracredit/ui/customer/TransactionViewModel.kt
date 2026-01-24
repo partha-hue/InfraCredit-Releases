@@ -19,7 +19,7 @@ class TransactionViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val customerId: String = checkNotNull(savedStateHandle["customerId"])
+    private val customerIdFromState: String? = savedStateHandle["customerId"]
 
     private val _detailState = mutableStateOf(CustomerDetailState())
     val detailState: State<CustomerDetailState> = _detailState
@@ -28,14 +28,15 @@ class TransactionViewModel @Inject constructor(
     val addTxState: State<AddTransactionState> = _addTxState
 
     init {
-        loadCustomerData()
+        customerIdFromState?.let { loadCustomerData(it) }
     }
 
-    fun loadCustomerData() {
+    fun loadCustomerData(id: String? = customerIdFromState) {
+        val targetId = id ?: return
         viewModelScope.launch {
             _detailState.value = _detailState.value.copy(isLoading = true)
-            val customerResult = customerRepository.getCustomerById(customerId)
-            val transactionsResult = transactionRepository.getTransactions(customerId)
+            val customerResult = customerRepository.getCustomerById(targetId)
+            val transactionsResult = transactionRepository.getTransactions(targetId)
 
             if (customerResult.isSuccess && transactionsResult.isSuccess) {
                 _detailState.value = CustomerDetailState(
@@ -50,13 +51,16 @@ class TransactionViewModel @Inject constructor(
         }
     }
 
-    fun addTransaction(amount: Double, type: TransactionType, description: String?) {
+    fun addTransaction(amount: Double, type: TransactionType, description: String?, customerId: String? = customerIdFromState) {
+        val targetId = customerId ?: return
         viewModelScope.launch {
             _addTxState.value = AddTransactionState(isLoading = true)
-            val result = transactionRepository.addTransaction(customerId, amount, type, description)
+            val result = transactionRepository.addTransaction(targetId, amount, type, description)
             if (result.isSuccess) {
                 _addTxState.value = AddTransactionState(isSuccess = true)
-                loadCustomerData() // Refresh
+                if (targetId == customerIdFromState) {
+                    loadCustomerData(targetId) // Refresh if it's the current detail screen
+                }
             } else {
                 _addTxState.value = AddTransactionState(error = result.exceptionOrNull()?.message ?: "Transaction failed")
             }
