@@ -1,6 +1,7 @@
 package com.example.infracredit.ui.auth
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -8,13 +9,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.infracredit.R
 import com.example.infracredit.ui.settings.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,17 +56,32 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "InfraCredit",
-            fontSize = 36.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = "Business Ledger & Credit Manager",
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Logo and Text Branding
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = "Logo",
+                modifier = Modifier.size(80.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = "InfraCredit",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF0054A6) // Matching the dark blue in logo
+                )
+                Text(
+                    text = "Business Ledger",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 2.dp)
+                )
+            }
+        }
         
         Spacer(modifier = Modifier.height(48.dp))
 
@@ -101,7 +120,8 @@ fun LoginScreen(
             Button(
                 onClick = { viewModel.login(phone, password) },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054A6))
             ) {
                 Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
@@ -117,7 +137,7 @@ fun LoginScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Don't have an account?")
             TextButton(onClick = onNavigateToRegister) {
-                Text("Register Now", fontWeight = FontWeight.Bold)
+                Text("Register Now", fontWeight = FontWeight.Bold, color = Color(0xFF0054A6))
             }
         }
     }
@@ -146,9 +166,10 @@ fun LoginScreen(
             confirmButton = {
                 Button(
                     onClick = { settingsViewModel.forgotPassword(resetPhone) },
-                    enabled = resetPhone.isNotBlank() && !passwordState.isLoading
+                    enabled = resetPhone.isNotBlank() && !passwordState.isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054A6))
                 ) {
-                    if (passwordState.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    if (passwordState.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                     else Text("Send Link")
                 }
             },

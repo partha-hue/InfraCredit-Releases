@@ -1,5 +1,6 @@
 package com.example.infracredit.ui.dashboard
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,10 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.infracredit.R
 import com.example.infracredit.domain.model.Customer
 import com.example.infracredit.ui.customer.CustomerViewModel
 
@@ -52,14 +55,18 @@ fun DashboardScreen(
             TopAppBar(
                 title = { 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.AccountBalanceWallet, 
-                            contentDescription = null, 
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            contentDescription = "Logo",
+                            modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("InfraCredit", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp)
+                        Text(
+                            text = "InfraCredit",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0054A6),
+                            fontSize = 20.sp
+                        )
                     }
                 },
                 actions = {
@@ -81,11 +88,10 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            // Smaller FAB Icon button as requested
             SmallFloatingActionButton(
                 onClick = onNavigateToAddCustomer,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = Color(0xFF0054A6),
+                contentColor = Color.White,
                 shape = CircleShape,
             ) {
                 Icon(Icons.Default.PersonAdd, contentDescription = "Add Customer")
@@ -117,7 +123,7 @@ fun DashboardScreen(
                 if (custState.isLoading) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                            CircularProgressIndicator(color = Color(0xFF0054A6))
                         }
                     }
                 } else {
@@ -190,7 +196,7 @@ fun WhatsAppSearchBar(query: String, onQueryChange: (String) -> Unit) {
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            focusedBorderColor = Color(0xFF0054A6),
             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
         ),
         singleLine = true
@@ -209,13 +215,13 @@ fun FilterChips(selectedFilter: String, onFilterSelected: (String) -> Unit) {
             Surface(
                 modifier = Modifier.clickable { onFilterSelected(filter) },
                 shape = RoundedCornerShape(20.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                color = if (isSelected) Color(0xFF0054A6) else MaterialTheme.colorScheme.surface,
                 border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {
                 Text(
                     text = filter,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -241,12 +247,12 @@ fun WhatsAppCustomerItem(customer: Customer, onClick: (String) -> Unit) {
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(Color(0xFF0054A6).copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = customer.name.take(1).uppercase(),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = Color(0xFF0054A6),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
@@ -299,11 +305,11 @@ fun WhatsAppBottomNavigation(
                 icon = { Icon(icon, contentDescription = label) },
                 label = { Text(label, fontSize = 10.sp) },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    selectedIconColor = Color(0xFF0054A6),
+                    selectedTextColor = Color(0xFF0054A6),
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                    indicatorColor = Color(0xFF0054A6).copy(alpha = 0.1f)
                 )
             )
         }

@@ -13,7 +13,8 @@ data class RegisterRequest(
     val fullName: String,
     val businessName: String? = null,
     val phone: String,
-    val password: String
+    val password: String,
+    val email: String? = null // For migration
 )
 
 @Serializable
@@ -23,4 +24,17 @@ data class AuthResponse(
     val userId: String,
     val fullName: String,
     val businessName: String? = null
+)
+
+@Serializable
+data class ProfileDto(
+    val id: String,
+    val phone: String?,
+    val fullName: String,
+    val businessName: String? = null,
+    val profilePic: String? = null,
+    val email: String? = null,
+    val address: String? = null,
+    val isMigrated: Boolean = false,
+    val createdAt: String
 )

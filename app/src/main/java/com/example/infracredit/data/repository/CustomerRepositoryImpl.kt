@@ -4,16 +4,26 @@ import com.example.infracredit.data.remote.InfracreditApi
 import com.example.infracredit.data.remote.dto.CustomerDto
 import com.example.infracredit.domain.model.Customer
 import com.example.infracredit.domain.repository.CustomerRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class CustomerRepositoryImpl @Inject constructor(
     private val api: InfracreditApi
 ) : CustomerRepository {
 
-    override suspend fun getCustomers(deleted: Boolean): Result<List<Customer>> {
+    private val _customersFlow = MutableStateFlow<List<Customer>>(emptyList())
+    override val customersFlow: Flow<List<Customer>> = _customersFlow.asStateFlow()
+
+    override suspend fun refreshCustomers(deleted: Boolean): Result<Unit> {
         return try {
             val dtos = api.getCustomers(deleted)
-            Result.success(dtos.map { it.toDomain() })
+            val domainList = dtos.map { it.toDomain() }
+            _customersFlow.emit(domainList)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -22,7 +32,10 @@ class CustomerRepositoryImpl @Inject constructor(
     override suspend fun addCustomer(name: String, phone: String?): Result<Customer> {
         return try {
             val dto = api.addCustomer(CustomerDto(name = name, phone = phone))
-            Result.success(dto.toDomain())
+            val customer = dto.toDomain()
+            // Optimistic update or simple refresh
+            refreshCustomers()
+            Result.success(customer)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -40,7 +53,9 @@ class CustomerRepositoryImpl @Inject constructor(
     override suspend fun updateCustomer(id: String, name: String, phone: String?, isDeleted: Boolean): Result<Customer> {
         return try {
             val dto = api.updateCustomer(id, CustomerDto(name = name, phone = phone, isDeleted = isDeleted))
-            Result.success(dto.toDomain())
+            val customer = dto.toDomain()
+            refreshCustomers()
+            Result.success(customer)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -49,6 +64,7 @@ class CustomerRepositoryImpl @Inject constructor(
     override suspend fun deleteCustomer(id: String): Result<Boolean> {
         return try {
             val response = api.deleteCustomer(id)
+            refreshCustomers()
             Result.success(response.success)
         } catch (e: Exception) {
             Result.failure(e)

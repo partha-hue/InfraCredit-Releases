@@ -37,10 +37,16 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(fullName: String, businessName: String?, phone: String, pass: String) {
+    fun register(fullName: String, businessName: String?, phone: String, pass: String, email: String? = null) {
         viewModelScope.launch {
             _state.value = AuthState(isLoading = true)
-            repository.register(RegisterRequest(fullName = fullName, businessName = businessName, phone = phone, password = pass))
+            repository.register(RegisterRequest(
+                fullName = fullName, 
+                businessName = businessName, 
+                phone = phone, 
+                password = pass,
+                email = email
+            ))
                 .onSuccess {
                     _state.value = AuthState(isAuthenticated = true)
                 }
