@@ -25,16 +25,3 @@ data class AuthResponse(
     val fullName: String,
     val businessName: String? = null
 )
-
-@Serializable
-data class ProfileDto(
-    val id: String,
-    val phone: String?,
-    val fullName: String,
-    val businessName: String? = null,
-    val profilePic: String? = null,
-    val email: String? = null,
-    val address: String? = null,
-    val isMigrated: Boolean = false,
-    val createdAt: String
-)

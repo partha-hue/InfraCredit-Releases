@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.infracredit.domain.repository.CustomerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,19 +25,24 @@ class CustomerViewModel @Inject constructor(
     private val _addState = mutableStateOf(AddCustomerState())
     val addState: State<AddCustomerState> = _addState
 
+    init {
+        // Observe real-time flow from repository
+        repository.customersFlow
+            .onEach { customers ->
+                _listState.value = _listState.value.copy(customers = customers, isLoading = false)
+            }
+            .launchIn(viewModelScope)
+    }
+
     fun getCustomers(deleted: Boolean = false) {
         viewModelScope.launch {
             if (deleted) _deletedState.value = CustomerListState(isLoading = true)
-            else _listState.value = CustomerListState(isLoading = true)
+            else _listState.value = _listState.value.copy(isLoading = true)
 
-            repository.getCustomers(deleted)
-                .onSuccess { customers ->
-                    if (deleted) _deletedState.value = CustomerListState(customers = customers)
-                    else _listState.value = CustomerListState(customers = customers)
-                }
+            repository.refreshCustomers(deleted)
                 .onFailure { e ->
                     if (deleted) _deletedState.value = CustomerListState(error = e.message)
-                    else _listState.value = CustomerListState(error = e.message)
+                    else _listState.value = _listState.value.copy(error = e.message, isLoading = false)
                 }
         }
     }
@@ -46,7 +53,6 @@ class CustomerViewModel @Inject constructor(
             repository.addCustomer(name, phone)
                 .onSuccess {
                     _addState.value = AddCustomerState(isSuccess = true)
-                    getCustomers(false)
                 }
                 .onFailure { e ->
                     _addState.value = AddCustomerState(error = e.message)
@@ -57,14 +63,6 @@ class CustomerViewModel @Inject constructor(
     fun updateCustomer(id: String, name: String, phone: String?, isDeleted: Boolean = false) {
         viewModelScope.launch {
             repository.updateCustomer(id, name, phone, isDeleted)
-                .onSuccess {
-                    // Refetch both lists to ensure UI is in sync
-                    getCustomers(false)
-                    getCustomers(true)
-                }
-                .onFailure {
-                    // Handle error if needed
-                }
         }
     }
 }
