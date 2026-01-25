@@ -28,8 +28,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.infracredit.domain.model.Transaction
 import com.example.infracredit.domain.model.TransactionType
+import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
@@ -53,13 +54,14 @@ fun CustomerDetailScreen(
         viewModel.loadCustomerData()
     }
 
+    // Scroll to bottom when transactions are loaded or updated
     LaunchedEffect(state.transactions.size) {
         if (state.transactions.isNotEmpty()) {
-            listState.animateScrollToItem(state.transactions.size + (state.transactions.groupBy { it.createdAt.split("T")[0] }.size))
+            val totalItems = state.transactions.size + state.transactions.groupBy { it.createdAt.split("T")[0] }.size
+            listState.animateScrollToItem(maxOf(0, totalItems - 1))
         }
     }
 
-    // REMOVED: Auto-send WhatsApp logic after transaction added
     LaunchedEffect(addTxState.isSuccess) {
         if (addTxState.isSuccess) {
             viewModel.resetAddTxState()
@@ -73,8 +75,17 @@ fun CustomerDetailScreen(
                     Column(modifier = Modifier.clickable { 
                         state.customer?.id?.let { onNavigateToEdit(it) }
                     }) {
-                        Text(state.customer?.name ?: "Loading...", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text("View Profile", fontSize = 12.sp, color = Color(0xFF00A884), fontWeight = FontWeight.Medium)
+                        Text(
+                            text = state.customer?.name ?: "Loading...", 
+                            fontSize = 18.sp, 
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "View Profile", 
+                            fontSize = 12.sp, 
+                            color = Color(0xFF00A884), 
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 },
                 navigationIcon = {
@@ -93,8 +104,8 @@ fun CustomerDetailScreen(
                     }) {
                         Icon(Icons.Default.Call, contentDescription = "Call")
                     }
-                    IconButton(onClick = { /* Help info */ }) {
-                        Icon(Icons.Default.HelpOutline, contentDescription = "Info")
+                    IconButton(onClick = { viewModel.loadCustomerData() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
@@ -127,25 +138,24 @@ fun CustomerDetailScreen(
         },
         bottomBar = {
             Surface(
-                tonalElevation = 12.dp,
-                shadowElevation = 12.dp,
+                tonalElevation = 8.dp,
+                shadowElevation = 8.dp,
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Column(
                     modifier = Modifier
-                        .navigationBarsPadding() // FIX: Avoid overlap with Android navigation bar
-                        .padding(bottom = 8.dp) // Added slight extra padding
+                        .navigationBarsPadding()
+                        .padding(bottom = 8.dp)
                 ) {
-                    // Report and Call Bar
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            modifier = Modifier.weight(1f).clickable { /* Report Logic */ },
+                            modifier = Modifier.clickable { /* Report Logic */ },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFF388E3C), modifier = Modifier.size(18.dp))
@@ -161,10 +171,9 @@ fun CustomerDetailScreen(
                                     context.startActivity(intent)
                                 }
                             },
-                            modifier = Modifier.weight(1.2f).height(42.dp),
+                            modifier = Modifier.width(140.dp).height(42.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D3B)),
-                            shape = RoundedCornerShape(21.dp),
-                            contentPadding = PaddingValues(0.dp)
+                            shape = RoundedCornerShape(21.dp)
                         ) {
                             Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -172,9 +181,8 @@ fun CustomerDetailScreen(
                         }
                     }
 
-                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 
-                    // Balance Due Row
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -183,22 +191,22 @@ fun CustomerDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Balance Due", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { /* Detail logic */ }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val balance = state.customer?.totalDue ?: 0.0
                             Text(
-                                text = "₹ ${String.format("%.0f", abs(state.customer?.totalDue ?: 0.0))}",
+                                text = "₹ ${String.format("%,.0f", abs(balance))}",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if ((state.customer?.totalDue ?: 0.0) >= 0) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                                color = if (balance >= 0) Color(0xFFD32F2F) else Color(0xFF388E3C)
                             )
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Red, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = if (balance >= 0) Color.Red else Color(0xFF388E3C), modifier = Modifier.size(20.dp))
                         }
                     }
                     
-                    // Received / Given Buttons - Refined Visibility
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
+                            .padding(bottom = 8.dp, start = 16.dp, end = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Button(
@@ -208,9 +216,9 @@ fun CustomerDetailScreen(
                             },
                             modifier = Modifier.weight(1f).height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.Red.copy(alpha = 0.7f)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f)),
                             shape = RoundedCornerShape(12.dp),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
                         ) {
                             Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color.Red, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
@@ -223,9 +231,9 @@ fun CustomerDetailScreen(
                             },
                             modifier = Modifier.weight(1f).height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFF006D3B).copy(alpha = 0.7f)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF006D3B).copy(alpha = 0.5f)),
                             shape = RoundedCornerShape(12.dp),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
                         ) {
                             Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFF006D3B), modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
@@ -236,21 +244,20 @@ fun CustomerDetailScreen(
             }
         }
     ) { padding ->
+        val isDark = isSystemInDarkTheme()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(if (isSystemInDarkTheme()) Color(0xFF0B141B) else Color(0xFFE5DDD5))
+                .background(if (isDark) Color(0xFF0B141B) else Color(0xFFECE5DD))
         ) {
-            // WhatsApp Reminder (Top Sticky)
             if ((state.customer?.totalDue ?: 0.0) > 0) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    color = if (isSystemInDarkTheme()) Color(0xFF1F2C34) else Color(0xFFE7F3EF),
-                    shape = RoundedCornerShape(8.dp),
-                    tonalElevation = 4.dp
+                    color = if (isDark) Color(0xFF1F2C34) else Color(0xFFE7F3EF),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -268,8 +275,8 @@ fun CustomerDetailScreen(
                         Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color(0xFF00A884))
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Send WhatsApp Reminder", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isSystemInDarkTheme()) Color.White else Color.Black)
-                            Text("Remind ${state.customer?.name} about ₹${state.customer?.totalDue}", fontSize = 12.sp, color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray)
+                            Text("Send WhatsApp Reminder", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color.Black)
+                            Text("Remind ${state.customer?.name} about ₹${abs(state.customer?.totalDue ?: 0.0)}", fontSize = 12.sp, color = if (isDark) Color.LightGray else Color.DarkGray)
                         }
                         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
                     }
@@ -278,36 +285,74 @@ fun CustomerDetailScreen(
 
             if (state.isLoading && state.transactions.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = Color(0xFF00A884))
+                }
+            } else if (state.error != null && state.transactions.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.ErrorOutline, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Red)
+                        Text(state.error, color = Color.Red, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(16.dp))
+                        Button(onClick = { viewModel.loadCustomerData() }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            } else if (state.transactions.isEmpty() && !state.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Gray)
+                        Text("No transactions yet", color = Color.Gray)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadCustomerData() }) {
+                            Text("Refresh")
+                        }
+                    }
                 }
             } else {
+                // Pre-calculate running balances for labels
+                val runningBalances = remember(state.transactions) {
+                    val balances = mutableMapOf<String, Double>()
+                    var current = 0.0
+                    state.transactions.sortedBy { it.createdAt }.forEach { tx ->
+                        if (tx.type == TransactionType.CREDIT) {
+                            current += tx.amount
+                        } else {
+                            current -= tx.amount
+                        }
+                        balances[tx.id] = current
+                    }
+                    balances
+                }
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     val grouped = state.transactions.groupBy { 
                         try {
-                            ZonedDateTime.parse(it.createdAt)
-                                .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+                            OffsetDateTime.parse(it.createdAt)
+                                .atZoneSameInstant(ZoneId.of("Asia/Kolkata"))
                                 .format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
                         } catch (e: Exception) {
-                            "Recent"
+                            try {
+                                it.createdAt.split("T")[0] 
+                            } catch (e2: Exception) {
+                                "Recent"
+                            }
                         }
                     }
 
                     grouped.forEach { (date, txs) ->
                         item {
-                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                                 Surface(
-                                    color = if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFF8696A0).copy(alpha = 0.8f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.padding(vertical = 12.dp)
+                                    color = if (isDark) Color(0xFF182229) else Color(0xFF80A1A2),
+                                    shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Text(
                                         text = date,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = Color.White
@@ -315,8 +360,12 @@ fun CustomerDetailScreen(
                                 }
                             }
                         }
-                        items(txs) { tx ->
-                            WhatsAppTransactionBubble(tx, ownerProfile?.fullName ?: "Owner")
+                        items(txs.sortedBy { it.createdAt }, key = { it.id }) { tx ->
+                            WhatsAppTransactionBubble(
+                                tx = tx, 
+                                ownerName = ownerProfile?.fullName ?: "Owner",
+                                balance = runningBalances[tx.id]
+                            )
                         }
                     }
                 }
@@ -337,94 +386,102 @@ fun CustomerDetailScreen(
 }
 
 @Composable
-fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String) {
-    val isCredit = tx.type == TransactionType.CREDIT
+fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String, balance: Double?) {
+    val isGiven = tx.type == TransactionType.CREDIT 
     val isDark = isSystemInDarkTheme()
     val timeText = try {
-        ZonedDateTime.parse(tx.createdAt)
-            .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
-            .format(DateTimeFormatter.ofPattern("hh:mm a"))
+        if (tx.createdAt.isEmpty()) "" else {
+            OffsetDateTime.parse(tx.createdAt)
+                .atZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+                .format(DateTimeFormatter.ofPattern("hh:mm a"))
+        }
     } catch (e: Exception) {
-        ""
+        try {
+            val instant = Instant.parse(tx.createdAt)
+            OffsetDateTime.ofInstant(instant, ZoneId.of("Asia/Kolkata"))
+                .format(DateTimeFormatter.ofPattern("hh:mm a"))
+        } catch (e2: Exception) {
+            ""
+        }
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isCredit) Arrangement.End else Arrangement.Start
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalAlignment = if (isGiven) Alignment.End else Alignment.Start
     ) {
-        Column(
+        Card(
             modifier = Modifier.widthIn(max = 280.dp),
-            horizontalAlignment = if (isCredit) Alignment.End else Alignment.Start
+            shape = RoundedCornerShape(
+                topStart = 8.dp,
+                topEnd = 8.dp,
+                bottomStart = if (isGiven) 8.dp else 0.dp,
+                bottomEnd = if (isGiven) 0.dp else 8.dp
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isDark) Color(0xFF1F2C34) else Color.White
+            ),
+            elevation = CardDefaults.cardElevation(1.dp)
         ) {
-            Card(
-                shape = RoundedCornerShape(
-                    topStart = 8.dp,
-                    topEnd = 8.dp,
-                    bottomStart = if (isCredit) 8.dp else 0.dp,
-                    bottomEnd = if (isCredit) 0.dp else 8.dp
-                ),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isDark) Color(0xFF1F2C34) else Color.White
-                ),
-                elevation = CardDefaults.cardElevation(1.dp)
-            ) {
-                Column {
-                    // Bubble Header
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(if (isDark) Color(0xFF232D36) else Color(0xFFE1ECEF))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Added by ${ownerName.take(15)}...",
-                            fontSize = 11.sp,
-                            color = if (isDark) Color(0xFF8696A0) else Color(0xFF6B8A8D),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = if (isCredit) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = if (isCredit) Color(0xFF25D366) else Color(0xFFF15C6D)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "₹${String.format("%.0f", tx.amount)}",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (isDark) Color.White else Color.Black
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            text = timeText,
-                            fontSize = 10.sp,
-                            color = if (isDark) Color(0xFF8696A0) else Color.Gray
-                        )
-                    }
-                    
-                    if (!tx.description.isNullOrBlank()) {
-                        Text(
-                            text = tx.description,
-                            fontSize = 13.sp,
-                            color = if (isDark) Color.LightGray else Color.DarkGray,
-                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)
-                        )
-                    }
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (isDark) Color(0xFF232D36) else Color(0xFFD1E3E1))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Added by ${ownerName.take(15)}...",
+                        fontSize = 11.sp,
+                        color = if (isDark) Color(0xFF8696A0) else Color(0xFF667781),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isGiven) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = if (isDark) Color.White else Color.Black
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "₹${String.format("%,.0f", tx.amount)}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White else Color.Black
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = timeText,
+                        fontSize = 11.sp,
+                        color = if (isDark) Color(0xFF8696A0) else Color(0xFF667781)
+                    )
+                }
+
+                if (!tx.description.isNullOrBlank()) {
+                    Text(
+                        text = tx.description,
+                        fontSize = 13.sp,
+                        color = if (isDark) Color(0xFFD1D7DB) else Color(0xFF54656F),
+                        modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 8.dp)
+                    )
                 }
             }
-            // Running balance below bubble
+        }
+        
+        if (balance != null) {
             Text(
-                text = "₹${String.format("%.0f", tx.amount)} Due",
-                fontSize = 11.sp,
-                color = if (isDark) Color(0xFF8696A0) else Color.DarkGray,
-                modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
+                text = "₹${String.format("%,.0f", abs(balance))} Due",
+                fontSize = 12.sp,
+                color = if (isDark) Color(0xFF8696A0) else Color(0xFF667781),
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp)
             )
         }
     }

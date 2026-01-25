@@ -11,6 +11,9 @@ import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.domain.repository.CustomerRepository
 import com.example.infracredit.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,7 +38,19 @@ class TransactionViewModel @Inject constructor(
 
     init {
         loadOwnerProfile()
-        customerIdFromState?.let { loadCustomerData(it) }
+        
+        if (customerIdFromState != null) {
+            customerRepository.customersFlow
+                .onEach { customers ->
+                    val cachedCustomer = customers.find { it.id == customerIdFromState }
+                    if (cachedCustomer != null) {
+                        _detailState.value = _detailState.value.copy(
+                            customer = cachedCustomer
+                        )
+                    }
+                }
+                .launchIn(viewModelScope)
+        }
     }
 
     private fun loadOwnerProfile() {
@@ -47,20 +62,34 @@ class TransactionViewModel @Inject constructor(
     }
 
     fun loadCustomerData(id: String? = customerIdFromState) {
-        val targetId = id ?: return
+        val targetId = id ?: run {
+            _detailState.value = _detailState.value.copy(error = "No customer ID provided", isLoading = false)
+            return
+        }
+        
         viewModelScope.launch {
-            _detailState.value = _detailState.value.copy(isLoading = true)
-            val customerResult = customerRepository.getCustomerById(targetId)
-            val transactionsResult = transactionRepository.getTransactions(targetId)
+            // Show loading if we have no transactions yet
+            if (_detailState.value.transactions.isEmpty()) {
+                _detailState.value = _detailState.value.copy(isLoading = true, error = null)
+            }
 
-            if (customerResult.isSuccess && transactionsResult.isSuccess) {
-                _detailState.value = CustomerDetailState(
-                    customer = customerResult.getOrNull(),
-                    transactions = transactionsResult.getOrDefault(emptyList())
+            val customerDeferred = async { customerRepository.getCustomerById(targetId) }
+            val transactionsDeferred = async { transactionRepository.getTransactions(targetId) }
+
+            val customerResult = customerDeferred.await()
+            val transactionsResult = transactionsDeferred.await()
+
+            if (customerResult.isFailure && transactionsResult.isFailure) {
+                _detailState.value = _detailState.value.copy(
+                    isLoading = false,
+                    error = "Check your internet connection"
                 )
             } else {
-                _detailState.value = CustomerDetailState(
-                    error = "Failed to load customer details"
+                _detailState.value = _detailState.value.copy(
+                    customer = customerResult.getOrNull() ?: _detailState.value.customer,
+                    transactions = transactionsResult.getOrDefault(emptyList()),
+                    isLoading = false,
+                    error = if (transactionsResult.isFailure) "Failed to load transactions" else null
                 )
             }
         }
@@ -69,15 +98,17 @@ class TransactionViewModel @Inject constructor(
     fun addTransaction(amount: Double, type: TransactionType, description: String?, customerId: String? = customerIdFromState) {
         val targetId = customerId ?: return
         viewModelScope.launch {
-            _addTxState.value = AddTransactionState(isLoading = true)
+            _addTxState.value = _addTxState.value.copy(isLoading = true)
             val result = transactionRepository.addTransaction(targetId, amount, type, description)
             if (result.isSuccess) {
                 _addTxState.value = AddTransactionState(isSuccess = true)
-                if (targetId == customerIdFromState) {
-                    loadCustomerData(targetId) // Refresh if it's the current detail screen
-                }
+                loadCustomerData(targetId)
+                customerRepository.refreshCustomers()
             } else {
-                _addTxState.value = AddTransactionState(error = result.exceptionOrNull()?.message ?: "Transaction failed")
+                _addTxState.value = _addTxState.value.copy(
+                    isLoading = false, 
+                    error = result.exceptionOrNull()?.message ?: "Transaction failed"
+                )
             }
         }
     }
@@ -86,6 +117,7 @@ class TransactionViewModel @Inject constructor(
         val id = customerIdFromState ?: return
         viewModelScope.launch {
             customerRepository.deleteCustomer(id).onSuccess {
+                customerRepository.refreshCustomers()
                 onSuccess()
             }
         }
