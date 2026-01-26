@@ -4,7 +4,7 @@ import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
-import com.example.infracredit.BuildConfig
+import com.example.infracredit.domain.model.UpdateInfo
 import com.example.infracredit.domain.repository.UpdateRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -16,21 +16,10 @@ class UpdateManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: UpdateRepository
 ) {
-    suspend fun checkForUpdate(url: String): String? {
+    suspend fun getUpdateInfo(url: String): UpdateInfo? {
         return try {
             val cacheBusterUrl = "$url?t=${System.currentTimeMillis()}"
-            val updateInfo = repository.checkForUpdate(cacheBusterUrl)
-            
-            if (updateInfo.latestVersionCode > BuildConfig.VERSION_CODE) {
-                val apkUrlWithCacheBuster = if (updateInfo.apkUrl.contains("?")) {
-                    "${updateInfo.apkUrl}&t=${System.currentTimeMillis()}"
-                } else {
-                    "${updateInfo.apkUrl}?t=${System.currentTimeMillis()}"
-                }
-                apkUrlWithCacheBuster
-            } else {
-                null
-            }
+            repository.checkForUpdate(cacheBusterUrl)
         } catch (e: Exception) {
             e.printStackTrace()
             null
