@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.infracredit.data.remote.dto.ProfileDto
+import com.example.infracredit.domain.model.Transaction
 import com.example.infracredit.domain.model.TransactionType
 import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.domain.repository.CustomerRepository
@@ -90,7 +91,7 @@ class TransactionViewModel @Inject constructor(
             } else {
                 _detailState.value = _detailState.value.copy(
                     customer = customerResult.getOrNull() ?: _detailState.value.customer,
-                    transactions = transactionsResult.getOrDefault(emptyList()),
+                    transactions = transactionsResult.getOrDefault(emptyList()).sortedBy { it.createdAt },
                     isLoading = false,
                     error = if (transactionsResult.isFailure) "Failed to load transactions" else null
                 )
@@ -116,7 +117,8 @@ class TransactionViewModel @Inject constructor(
                         amount = amount, 
                         type = type, 
                         totalBalance = newTotalDue,
-                        ownerName = owner?.fullName ?: "Shop Owner"
+                        ownerName = owner?.fullName ?: "Shop Owner",
+                        isEdit = false
                     )
                 }
 
@@ -132,13 +134,68 @@ class TransactionViewModel @Inject constructor(
         }
     }
 
-    private fun sendAutomaticSms(customerName: String, phoneNumber: String, amount: Double, type: TransactionType, totalBalance: Double, ownerName: String) {
+    fun updateTransaction(transactionId: String, amount: Double, type: TransactionType, description: String?) {
+        viewModelScope.launch {
+            _addTxState.value = _addTxState.value.copy(isLoading = true)
+            val result = transactionRepository.updateTransaction(transactionId, amount, type, description)
+            if (result.isSuccess) {
+                val transaction = result.getOrNull()
+                val customer = _detailState.value.customer
+                val owner = _ownerProfile.value
+
+                // We need the updated total due for the SMS
+                // Refreshing customers will get the new total due from backend
+                customerRepository.refreshCustomers()
+                val updatedCustomer = customerRepository.getCustomerById(customerIdFromState ?: "").getOrNull()
+                
+                if (updatedCustomer?.phone != null && transaction != null) {
+                    sendAutomaticSms(
+                        customerName = updatedCustomer.name,
+                        phoneNumber = updatedCustomer.phone,
+                        amount = amount,
+                        type = type,
+                        totalBalance = updatedCustomer.totalDue,
+                        ownerName = owner?.fullName ?: "Shop Owner",
+                        isEdit = true
+                    )
+                }
+
+                _addTxState.value = AddTransactionState(isSuccess = true)
+                loadCustomerData()
+            } else {
+                _addTxState.value = _addTxState.value.copy(
+                    isLoading = false,
+                    error = result.exceptionOrNull()?.message ?: "Update failed"
+                )
+            }
+        }
+    }
+
+    fun deleteTransaction(transactionId: String) {
+        viewModelScope.launch {
+            _addTxState.value = _addTxState.value.copy(isLoading = true)
+            val result = transactionRepository.deleteTransaction(transactionId)
+            if (result.isSuccess) {
+                customerRepository.refreshCustomers()
+                _addTxState.value = AddTransactionState(isSuccess = true)
+                loadCustomerData()
+            } else {
+                _addTxState.value = _addTxState.value.copy(
+                    isLoading = false,
+                    error = result.exceptionOrNull()?.message ?: "Delete failed"
+                )
+            }
+        }
+    }
+
+    private fun sendAutomaticSms(customerName: String, phoneNumber: String, amount: Double, type: TransactionType, totalBalance: Double, ownerName: String, isEdit: Boolean) {
         try {
+            val prefix = if (isEdit) "UPDATE: " else ""
             val typeString = if (type == TransactionType.CREDIT) "Given (Credit)" else "Received (Payment)"
             val balanceLabel = if (totalBalance >= 0) "Total Due" else "Advance"
             val currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy hh:mm a"))
             
-            val message = "Dear $customerName, ₹$amount ($typeString) recorded at $currentTime. $balanceLabel: ₹${abs(totalBalance)}. - Sent by $ownerName via InfraCredit"
+            val message = "${prefix}Dear $customerName, ₹$amount ($typeString) recorded at $currentTime. $balanceLabel: ₹${abs(totalBalance)}. - Sent by $ownerName via InfraCredit"
             
             val smsManager: SmsManager = SmsManager.getDefault()
             val parts = smsManager.divideMessage(message)

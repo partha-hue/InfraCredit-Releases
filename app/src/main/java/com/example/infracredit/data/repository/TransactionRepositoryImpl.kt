@@ -41,6 +41,36 @@ class TransactionRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateTransaction(
+        id: String,
+        amount: Double,
+        type: TransactionType,
+        description: String?
+    ): Result<Transaction> {
+        return try {
+            val dto = api.updateTransaction(
+                id,
+                TransactionDto(
+                    amount = amount,
+                    type = type.name,
+                    description = description
+                )
+            )
+            Result.success(dto.toDomain())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteTransaction(id: String): Result<Unit> {
+        return try {
+            api.deleteTransaction(id)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun TransactionDto.toDomain(): Transaction {
         return Transaction(
             id = id ?: "",

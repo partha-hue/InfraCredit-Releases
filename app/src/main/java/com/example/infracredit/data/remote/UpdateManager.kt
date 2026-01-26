@@ -17,21 +17,25 @@ class UpdateManager @Inject constructor(
 ) {
     suspend fun checkForUpdate(url: String): String? {
         return try {
-            val updateInfo = repository.checkForUpdate(url)
+            // Add a timestamp to bypass GitHub caching (Production Level Fix)
+            val cacheBusterUrl = "$url?t=${System.currentTimeMillis()}"
+            val updateInfo = repository.checkForUpdate(cacheBusterUrl)
+            
             if (updateInfo.latestVersionCode > BuildConfig.VERSION_CODE) {
                 updateInfo.apkUrl
             } else {
                 null
             }
         } catch (e: Exception) {
+            e.printStackTrace()
             null
         }
     }
 
     fun downloadUpdate(apkUrl: String) {
         val request = DownloadManager.Request(Uri.parse(apkUrl))
-            .setTitle("App Update")
-            .setDescription("Downloading latest version of InfraCredit")
+            .setTitle("InfraCredit Update")
+            .setDescription("Downloading latest version...")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "update.apk")
             .setAllowedOverMetered(true)

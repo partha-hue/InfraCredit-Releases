@@ -11,4 +11,11 @@ interface TransactionRepository {
         type: TransactionType,
         description: String?
     ): Result<Transaction>
+    suspend fun updateTransaction(
+        id: String,
+        amount: Double,
+        type: TransactionType,
+        description: String?
+    ): Result<Transaction>
+    suspend fun deleteTransaction(id: String): Result<Unit>
 }

@@ -47,6 +47,12 @@ interface InfracreditApi {
     @POST("transactions")
     suspend fun addTransaction(@Body transaction: TransactionDto): TransactionDto
 
+    @PUT("transactions/{id}")
+    suspend fun updateTransaction(@Path("id") id: String, @Body transaction: TransactionDto): TransactionDto
+
+    @DELETE("transactions/{id}")
+    suspend fun deleteTransaction(@Path("id") id: String): GenericResponse
+
     companion object {
         const val BASE_URL = "https://infracredit-backend.onrender.com/v1/"
     }
