@@ -39,8 +39,7 @@ import com.example.infracredit.domain.model.Transaction
 import com.example.infracredit.domain.model.TransactionType
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
+import java.util.*
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -321,7 +320,7 @@ fun CustomerDetailScreen(
                         item {
                             Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                                 Surface(color = if (isDark) Color(0xFF182229) else Color(0xFF80A1A2), shape = RoundedCornerShape(12.dp)) {
-                                    Text(text = date, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp), fontSize = 12.sp, color = Color.White)
+                                    Text(text = getDisplayDate(date), modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp), fontSize = 12.sp, color = Color.White)
                                 }
                             }
                         }
@@ -362,6 +361,33 @@ fun CustomerDetailScreen(
                 editingTransaction?.id?.let { viewModel.deleteTransaction(it) }
             }
         )
+    }
+}
+
+fun getDisplayDate(dateStr: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val date = inputFormat.parse(dateStr) ?: return dateStr
+        
+        val calendar = Calendar.getInstance()
+        val today = calendar.time
+        calendar.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterday = calendar.time
+        
+        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val todayStr = fmt.format(today)
+        val yesterdayStr = fmt.format(yesterday)
+        
+        when (dateStr) {
+            todayStr -> "Today"
+            yesterdayStr -> "Yesterday"
+            else -> {
+                val outputFormat = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
+                outputFormat.format(date)
+            }
+        }
+    } catch (e: Exception) {
+        dateStr
     }
 }
 
