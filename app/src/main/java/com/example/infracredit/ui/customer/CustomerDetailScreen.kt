@@ -63,6 +63,18 @@ fun CustomerDetailScreen(
     var showMenu by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
+    // Pre-calculate running balances for consistency
+    val transactionsWithBalance = remember(state.transactions) {
+        var balance = 0.0
+        state.transactions.map { tx ->
+            balance += if (tx.type == TransactionType.CREDIT) tx.amount else -tx.amount
+            tx to balance
+        }
+    }
+
+    // Use calculated balance for UI consistency
+    val totalDue = transactionsWithBalance.lastOrNull()?.second ?: 0.0
+
     val showScrollToBottom by remember {
         derivedStateOf {
             val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -195,14 +207,13 @@ fun CustomerDetailScreen(
                     ) {
                         Text("Balance Due", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val balance = state.customer?.totalDue ?: 0.0
                             Text(
-                                text = "₹ ${String.format(Locale.getDefault(), "%,.0f", abs(balance))}",
+                                text = "₹ ${String.format(Locale.getDefault(), "%,.0f", abs(totalDue))}",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (balance >= 0) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                                color = if (totalDue >= 0) Color(0xFFD32F2F) else Color(0xFF388E3C)
                             )
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = if (balance >= 0) Color.Red else Color(0xFF388E3C), modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = if (totalDue >= 0) Color.Red else Color(0xFF388E3C), modifier = Modifier.size(20.dp))
                         }
                     }
                     
@@ -277,7 +288,7 @@ fun CustomerDetailScreen(
             } else {
                 
                 state.customer?.let { customer ->
-                    if (customer.totalDue != 0.0) {
+                    if (totalDue != 0.0) {
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
                             colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF1F2C34) else Color(0xFFE3F2FD)),
@@ -291,7 +302,7 @@ fun CustomerDetailScreen(
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("Send WhatsApp Reminder", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                    Text("Remind ${customer.name} about ₹${abs(customer.totalDue)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Remind ${customer.name} about ₹${abs(totalDue)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
                             }
@@ -304,10 +315,9 @@ fun CustomerDetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    val grouped = state.transactions.groupBy { it.createdAt.split("T")[0] }
-                    var runningBalance = 0.0
+                    val grouped = transactionsWithBalance.groupBy { it.first.createdAt.split("T")[0] }
 
-                    grouped.forEach { (date, txs) ->
+                    grouped.forEach { (date, txAndBalanceList) ->
                         item {
                             Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                                 Surface(color = if (isDark) Color(0xFF182229) else Color(0xFF80A1A2), shape = RoundedCornerShape(12.dp)) {
@@ -315,14 +325,11 @@ fun CustomerDetailScreen(
                                 }
                             }
                         }
-                        items(txs, key = { it.id }) { tx ->
-                            // Correct running balance calculation
-                            runningBalance += if (tx.type == TransactionType.CREDIT) tx.amount else -tx.amount
-                            
+                        items(txAndBalanceList, key = { it.first.id }) { (tx, balance) ->
                             WhatsAppTransactionBubble(
                                 tx = tx, 
                                 ownerName = ownerProfile?.fullName ?: "Owner",
-                                runningBalance = runningBalance,
+                                runningBalance = balance,
                                 onLongClick = {
                                     editingTransaction = tx
                                     dialogType = tx.type
@@ -346,7 +353,6 @@ fun CustomerDetailScreen(
             },
             onConfirm = { amount, desc ->
                 if (editingTransaction != null) {
-                    // Force using the same type as original transaction when editing to avoid confusion
                     viewModel.updateTransaction(editingTransaction!!.id, amount, editingTransaction!!.type, desc)
                 } else {
                     viewModel.addTransaction(amount, dialogType, desc)
