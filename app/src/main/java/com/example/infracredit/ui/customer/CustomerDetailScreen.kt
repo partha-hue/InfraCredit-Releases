@@ -1,8 +1,12 @@
 package com.example.infracredit.ui.customer
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -25,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.infracredit.domain.model.Transaction
 import com.example.infracredit.domain.model.TransactionType
@@ -50,8 +55,22 @@ fun CustomerDetailScreen(
     var showMenu by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
+    // SMS Permission Launcher
+    val smsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (!isGranted) {
+                Toast.makeText(context, "SMS Permission is required to send automatic alerts", Toast.LENGTH_LONG).show()
+            }
+        }
+    )
+
     LaunchedEffect(Unit) {
         viewModel.loadCustomerData()
+        // Request SMS permission on screen entry if not granted
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
+        }
     }
 
     // Scroll to bottom when transactions are loaded or updated
@@ -378,7 +397,14 @@ fun CustomerDetailScreen(
             type = dialogType,
             onDismiss = { showAddDialog = false },
             onConfirm = { amount, desc ->
-                viewModel.addTransaction(amount, dialogType, desc)
+                // Check SMS permission before adding transaction
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+                    viewModel.addTransaction(amount, dialogType, desc)
+                } else {
+                    // If not granted, request it and warn user
+                    smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
+                    Toast.makeText(context, "Please allow SMS permission to alert the customer", Toast.LENGTH_SHORT).show()
+                }
                 showAddDialog = false
             }
         )
