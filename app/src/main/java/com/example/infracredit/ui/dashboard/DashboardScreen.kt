@@ -375,7 +375,8 @@ fun WhatsAppBottomNavigation(
         val items = listOf(
             Triple("Customers", Icons.Default.People, onCustomersClick),
             Triple("Calculator", Icons.Outlined.Calculate, onCalculatorClick),
-            Triple("Contacts", Icons.Outlined.Contacts, onContactsClick)
+            Triple("Contacts", Icons.Outlined.Contacts, onContactsClick),
+            Triple("Settings", Icons.Default.Settings, onProfileClick)
         )
         
         items.forEach { (label, icon, onClick) ->
