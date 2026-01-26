@@ -1,5 +1,7 @@
 package com.example.infracredit.ui.dashboard
 
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.infracredit.R
 import com.example.infracredit.domain.model.Customer
 import com.example.infracredit.ui.customer.CustomerViewModel
+import com.example.infracredit.ui.settings.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,16 +43,21 @@ fun DashboardScreen(
     onNavigateToCalculator: () -> Unit,
     onNavigateToContacts: () -> Unit,
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
-    customerViewModel: CustomerViewModel = hiltViewModel()
+    customerViewModel: CustomerViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val dashState = dashboardViewModel.state.value
     val custState = customerViewModel.listState.value
+    val profileState = settingsViewModel.profileState.value
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
+    
+    var showProfileDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         dashboardViewModel.loadDashboardData()
         customerViewModel.getCustomers()
+        settingsViewModel.loadProfile()
     }
 
     Scaffold(
@@ -70,8 +80,36 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val profile = profileState.profile
+                    if (profile?.profilePic != null) {
+                        val bitmap = remember(profile.profilePic) {
+                            try {
+                                val imageBytes = Base64.decode(profile.profilePic, Base64.DEFAULT)
+                                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Profile",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .padding(end = 8.dp)
+                                    .clip(CircleShape)
+                                    .clickable { showProfileDialog = true },
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            IconButton(onClick = { showProfileDialog = true }) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                            }
+                        }
+                    } else {
+                        IconButton(onClick = { showProfileDialog = true }) {
+                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -138,6 +176,49 @@ fun DashboardScreen(
                 }
             }
         }
+    }
+
+    if (showProfileDialog) {
+        AlertDialog(
+            onDismissRequest = { showProfileDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showProfileDialog = false }) {
+                    Text("Close")
+                }
+            },
+            title = { Text("Owner Profile") },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    val profile = profileState.profile
+                    if (profile?.profilePic != null) {
+                        val bitmap = remember(profile.profilePic) {
+                            try {
+                                val imageBytes = Base64.decode(profile.profilePic, Base64.DEFAULT)
+                                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.size(100.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    } else {
+                        Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(100.dp), tint = Color.Gray)
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Text(text = profile?.fullName ?: "Name not set", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(text = profile?.phone ?: "Number not set", fontSize = 14.sp, color = Color.Gray)
+                    if (profile?.businessName != null) {
+                        Text(text = profile.businessName, fontSize = 14.sp, color = Color.Gray)
+                    }
+                }
+            }
+        )
     }
 }
 
@@ -294,8 +375,7 @@ fun WhatsAppBottomNavigation(
         val items = listOf(
             Triple("Customers", Icons.Default.People, onCustomersClick),
             Triple("Calculator", Icons.Outlined.Calculate, onCalculatorClick),
-            Triple("Contacts", Icons.Outlined.Contacts, onContactsClick),
-            Triple("Settings", Icons.Default.Settings, onProfileClick)
+            Triple("Contacts", Icons.Outlined.Contacts, onContactsClick)
         )
         
         items.forEach { (label, icon, onClick) ->
