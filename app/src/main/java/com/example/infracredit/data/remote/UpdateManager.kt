@@ -17,12 +17,18 @@ class UpdateManager @Inject constructor(
 ) {
     suspend fun checkForUpdate(url: String): String? {
         return try {
-            // Add a timestamp to bypass GitHub caching (Production Level Fix)
+            // Add a timestamp to bypass GitHub caching for the version check
             val cacheBusterUrl = "$url?t=${System.currentTimeMillis()}"
             val updateInfo = repository.checkForUpdate(cacheBusterUrl)
             
             if (updateInfo.latestVersionCode > BuildConfig.VERSION_CODE) {
-                updateInfo.apkUrl
+                // Add a timestamp to the APK URL as well to ensure the latest file is downloaded
+                val apkUrlWithCacheBuster = if (updateInfo.apkUrl.contains("?")) {
+                    "${updateInfo.apkUrl}&t=${System.currentTimeMillis()}"
+                } else {
+                    "${updateInfo.apkUrl}?t=${System.currentTimeMillis()}"
+                }
+                apkUrlWithCacheBuster
             } else {
                 null
             }
