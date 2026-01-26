@@ -16,7 +16,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlin.math.abs
 
 @HiltViewModel
 class TransactionViewModel @Inject constructor(
@@ -103,10 +106,18 @@ class TransactionViewModel @Inject constructor(
             if (result.isSuccess) {
                 val transaction = result.getOrNull()
                 val customer = _detailState.value.customer
+                val owner = _ownerProfile.value
                 
-                // Send SMS automatically if phone is available
                 if (customer?.phone != null && transaction != null) {
-                    sendAutomaticSms(customer.name, customer.phone, amount, type, customer.totalDue + (if(type == TransactionType.CREDIT) amount else -amount))
+                    val newTotalDue = customer.totalDue + (if(type == TransactionType.CREDIT) amount else -amount)
+                    sendAutomaticSms(
+                        customerName = customer.name, 
+                        phoneNumber = customer.phone, 
+                        amount = amount, 
+                        type = type, 
+                        totalBalance = newTotalDue,
+                        ownerName = owner?.fullName ?: "Shop Owner"
+                    )
                 }
 
                 _addTxState.value = AddTransactionState(isSuccess = true)
@@ -121,13 +132,17 @@ class TransactionViewModel @Inject constructor(
         }
     }
 
-    private fun sendAutomaticSms(customerName: String, phoneNumber: String, amount: Double, type: TransactionType, totalBalance: Double) {
+    private fun sendAutomaticSms(customerName: String, phoneNumber: String, amount: Double, type: TransactionType, totalBalance: Double, ownerName: String) {
         try {
-            val typeString = if (type == TransactionType.CREDIT) "Credit/Due" else "Payment"
-            val message = "Hello $customerName, a new transaction of $amount ($typeString) has been added. Your total due is now $totalBalance. Thank you!"
+            val typeString = if (type == TransactionType.CREDIT) "Given (Credit)" else "Received (Payment)"
+            val balanceLabel = if (totalBalance >= 0) "Total Due" else "Advance"
+            val currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy hh:mm a"))
+            
+            val message = "Dear $customerName, ₹$amount ($typeString) recorded at $currentTime. $balanceLabel: ₹${abs(totalBalance)}. - Sent by $ownerName via InfraCredit"
             
             val smsManager: SmsManager = SmsManager.getDefault()
-            smsManager.sendTextMessage(phoneNumber, null, message, null, null)
+            val parts = smsManager.divideMessage(message)
+            smsManager.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
         } catch (e: Exception) {
             e.printStackTrace()
         }
