@@ -213,6 +213,7 @@ fun CustomerDetailScreen(
                         Button(
                             onClick = { 
                                 dialogType = TransactionType.PAYMENT
+                                editingTransaction = null
                                 showAddDialog = true 
                             },
                             modifier = Modifier.weight(1f).height(50.dp),
@@ -228,6 +229,7 @@ fun CustomerDetailScreen(
                         Button(
                             onClick = { 
                                 dialogType = TransactionType.CREDIT
+                                editingTransaction = null
                                 showAddDialog = true 
                             },
                             modifier = Modifier.weight(1f).height(50.dp),
@@ -303,6 +305,7 @@ fun CustomerDetailScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     val grouped = state.transactions.groupBy { it.createdAt.split("T")[0] }
+                    var runningBalance = 0.0
 
                     grouped.forEach { (date, txs) ->
                         item {
@@ -313,9 +316,13 @@ fun CustomerDetailScreen(
                             }
                         }
                         items(txs, key = { it.id }) { tx ->
+                            // Correct running balance calculation
+                            runningBalance += if (tx.type == TransactionType.CREDIT) tx.amount else -tx.amount
+                            
                             WhatsAppTransactionBubble(
                                 tx = tx, 
                                 ownerName = ownerProfile?.fullName ?: "Owner",
+                                runningBalance = runningBalance,
                                 onLongClick = {
                                     editingTransaction = tx
                                     dialogType = tx.type
@@ -339,7 +346,8 @@ fun CustomerDetailScreen(
             },
             onConfirm = { amount, desc ->
                 if (editingTransaction != null) {
-                    viewModel.updateTransaction(editingTransaction!!.id, amount, dialogType, desc)
+                    // Force using the same type as original transaction when editing to avoid confusion
+                    viewModel.updateTransaction(editingTransaction!!.id, amount, editingTransaction!!.type, desc)
                 } else {
                     viewModel.addTransaction(amount, dialogType, desc)
                 }
@@ -353,7 +361,12 @@ fun CustomerDetailScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String, onLongClick: () -> Unit) {
+fun WhatsAppTransactionBubble(
+    tx: Transaction, 
+    ownerName: String, 
+    runningBalance: Double,
+    onLongClick: () -> Unit
+) {
     val isGiven = tx.type == TransactionType.CREDIT 
     val isDark = isSystemInDarkTheme()
     
@@ -401,6 +414,14 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String, onLongClick: (
                 }
             }
         }
+        
+        // Show current due below the bubble
+        Text(
+            text = "₹${String.format(Locale.getDefault(), "%,.0f", abs(runningBalance))} ${if (runningBalance >= 0) "Due" else "Advance"}",
+            fontSize = 12.sp,
+            color = if (isDark) Color(0xFF8696A0) else Color(0xFF667781),
+            modifier = Modifier.padding(top = 2.dp, start = if (isGiven) 0.dp else 4.dp, end = if (isGiven) 4.dp else 0.dp)
+        )
     }
 }
 
