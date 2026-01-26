@@ -18,12 +18,14 @@ class CustomerRepositoryImpl @Inject constructor(
     private val _customersFlow = MutableStateFlow<List<Customer>>(emptyList())
     override val customersFlow: Flow<List<Customer>> = _customersFlow.asStateFlow()
 
-    override suspend fun refreshCustomers(deleted: Boolean): Result<Unit> {
+    override suspend fun refreshCustomers(deleted: Boolean): Result<List<Customer>> {
         return try {
             val dtos = api.getCustomers(deleted)
             val domainList = dtos.map { it.toDomain() }
-            _customersFlow.emit(domainList)
-            Result.success(Unit)
+            if (!deleted) {
+                _customersFlow.emit(domainList)
+            }
+            Result.success(domainList)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -33,8 +35,7 @@ class CustomerRepositoryImpl @Inject constructor(
         return try {
             val dto = api.addCustomer(CustomerDto(name = name, phone = phone))
             val customer = dto.toDomain()
-            // Optimistic update or simple refresh
-            refreshCustomers()
+            refreshCustomers(false)
             Result.success(customer)
         } catch (e: Exception) {
             Result.failure(e)
@@ -54,7 +55,8 @@ class CustomerRepositoryImpl @Inject constructor(
         return try {
             val dto = api.updateCustomer(id, CustomerDto(name = name, phone = phone, isDeleted = isDeleted))
             val customer = dto.toDomain()
-            refreshCustomers()
+            refreshCustomers(false)
+            refreshCustomers(true)
             Result.success(customer)
         } catch (e: Exception) {
             Result.failure(e)
@@ -64,7 +66,8 @@ class CustomerRepositoryImpl @Inject constructor(
     override suspend fun deleteCustomer(id: String): Result<Boolean> {
         return try {
             val response = api.deleteCustomer(id)
-            refreshCustomers()
+            refreshCustomers(false)
+            refreshCustomers(true)
             Result.success(response.success)
         } catch (e: Exception) {
             Result.failure(e)

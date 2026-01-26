@@ -26,7 +26,7 @@ android {
             isMinifyEnabled = false
         }
         release {
-            isMinifyEnabled = false // Disabled for testing/debug builds to avoid signing issues
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -42,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

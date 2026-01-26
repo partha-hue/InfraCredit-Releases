@@ -3,14 +3,17 @@ package com.example.infracredit.di
 import com.example.infracredit.data.local.TokenManager
 import com.example.infracredit.data.remote.AuthInterceptor
 import com.example.infracredit.data.remote.InfracreditApi
+import com.example.infracredit.data.remote.UpdateService
 import com.example.infracredit.data.repository.AuthRepositoryImpl
 import com.example.infracredit.data.repository.CustomerRepositoryImpl
 import com.example.infracredit.data.repository.DashboardRepositoryImpl
 import com.example.infracredit.data.repository.TransactionRepositoryImpl
+import com.example.infracredit.data.repository.UpdateRepositoryImpl
 import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.domain.repository.CustomerRepository
 import com.example.infracredit.domain.repository.DashboardRepository
 import com.example.infracredit.domain.repository.TransactionRepository
+import com.example.infracredit.domain.repository.UpdateRepository
 import com.example.infracredit.ui.theme.ThemeManager
 import dagger.Module
 import dagger.Provides
@@ -30,6 +33,13 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideJson(): Json = Json { 
+        ignoreUnknownKeys = true
+        encodeDefaults = true 
+    }
+
+    @Provides
+    @Singleton
     fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
@@ -41,11 +51,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideInfracreditApi(client: OkHttpClient): InfracreditApi {
-        val json = Json { 
-            ignoreUnknownKeys = true
-            encodeDefaults = true // Crucial for sending default values like isDeleted=false
-        }
+    fun provideInfracreditApi(client: OkHttpClient, json: Json): InfracreditApi {
         val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
             .baseUrl(InfracreditApi.BASE_URL)
@@ -57,8 +63,25 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideUpdateService(json: Json): UpdateService {
+        val contentType = "application/json".toMediaType()
+        return Retrofit.Builder()
+            .baseUrl("https://example.com/") // Base URL is required but overwritten by @Url
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(UpdateService::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideAuthRepository(api: InfracreditApi, tokenManager: TokenManager): AuthRepository {
         return AuthRepositoryImpl(api, tokenManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUpdateRepository(updateService: UpdateService): UpdateRepository {
+        return UpdateRepositoryImpl(updateService)
     }
 
     @Provides

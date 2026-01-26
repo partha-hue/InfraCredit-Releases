@@ -41,12 +41,19 @@ class TransactionRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun TransactionDto.toDomain() = Transaction(
-        id = id ?: "",
-        customerId = customerId,
-        amount = amount,
-        type = TransactionType.valueOf(type),
-        description = description,
-        createdAt = createdAt ?: ""
-    )
+    private fun TransactionDto.toDomain(): Transaction {
+        return Transaction(
+            id = id ?: "",
+            customerId = customerId ?: "",
+            amount = amount ?: 0.0,
+            type = try {
+                TransactionType.valueOf((type ?: "CREDIT").uppercase())
+            } catch (e: Exception) {
+                if (type?.contains("pay", ignoreCase = true) == true) TransactionType.PAYMENT 
+                else TransactionType.CREDIT
+            },
+            description = description,
+            createdAt = createdAt ?: ""
+        )
+    }
 }

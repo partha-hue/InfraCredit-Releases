@@ -4,11 +4,11 @@ import com.example.infracredit.domain.model.Customer
 import kotlinx.coroutines.flow.Flow
 
 interface CustomerRepository {
-    // Real-time flow of customers
+    // Real-time flow of active customers
     val customersFlow: Flow<List<Customer>>
     
     // Manual triggers
-    suspend fun refreshCustomers(deleted: Boolean = false): Result<Unit>
+    suspend fun refreshCustomers(deleted: Boolean = false): Result<List<Customer>>
     
     suspend fun addCustomer(name: String, phone: String?): Result<Customer>
     suspend fun getCustomerById(id: String): Result<Customer>
