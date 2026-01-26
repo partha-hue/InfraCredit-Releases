@@ -38,7 +38,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.infracredit.domain.model.Transaction
 import com.example.infracredit.domain.model.TransactionType
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -271,6 +273,30 @@ fun CustomerDetailScreen(
                     CircularProgressIndicator(color = Color(0xFF00A884))
                 }
             } else {
+                
+                state.customer?.let { customer ->
+                    if (customer.totalDue != 0.0) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF1F2C34) else Color(0xFFE3F2FD)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color(0xFF00A884), modifier = Modifier.size(24.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Send WhatsApp Reminder", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("Remind ${customer.name} about ₹${abs(customer.totalDue)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -331,6 +357,16 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String, onLongClick: (
     val isGiven = tx.type == TransactionType.CREDIT 
     val isDark = isSystemInDarkTheme()
     
+    val time = try {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        val date = sdf.parse(tx.createdAt)
+        val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+        timeFormat.format(date!!)
+    } catch (e: Exception) {
+        ""
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalAlignment = if (isGiven) Alignment.End else Alignment.Start
@@ -353,6 +389,11 @@ fun WhatsAppTransactionBubble(tx: Transaction, ownerName: String, onLongClick: (
                     Icon(imageVector = if (isGiven) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (isDark) Color.White else Color.Black)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = "₹${String.format(Locale.getDefault(), "%,.0f", tx.amount)}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color.Black)
+                    
+                    if (time.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = time, fontSize = 11.sp, color = Color.Gray, modifier = Modifier.align(Alignment.Bottom))
+                    }
                 }
 
                 if (!tx.description.isNullOrBlank()) {
