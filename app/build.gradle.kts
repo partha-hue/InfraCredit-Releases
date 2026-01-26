@@ -23,8 +23,8 @@ android {
         applicationId = "com.example.infracredit"
         minSdk = 24
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.8"
+        versionCode = 9
+        versionName = "1.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -32,7 +32,6 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../infracredit_key.jks")
-            // We use the password from local.properties if available, otherwise use a fallback
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD") ?: "123456"
             keyAlias = "infracredit"
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD") ?: "123456"
