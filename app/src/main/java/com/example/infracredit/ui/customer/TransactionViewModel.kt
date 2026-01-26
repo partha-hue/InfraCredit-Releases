@@ -1,5 +1,6 @@
 package com.example.infracredit.ui.customer
 
+import android.telephony.SmsManager
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
@@ -68,7 +69,6 @@ class TransactionViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
-            // Show loading if we have no transactions yet
             if (_detailState.value.transactions.isEmpty()) {
                 _detailState.value = _detailState.value.copy(isLoading = true, error = null)
             }
@@ -101,6 +101,14 @@ class TransactionViewModel @Inject constructor(
             _addTxState.value = _addTxState.value.copy(isLoading = true)
             val result = transactionRepository.addTransaction(targetId, amount, type, description)
             if (result.isSuccess) {
+                val transaction = result.getOrNull()
+                val customer = _detailState.value.customer
+                
+                // Send SMS automatically if phone is available
+                if (customer?.phone != null && transaction != null) {
+                    sendAutomaticSms(customer.name, customer.phone, amount, type, customer.totalDue + (if(type == TransactionType.CREDIT) amount else -amount))
+                }
+
                 _addTxState.value = AddTransactionState(isSuccess = true)
                 loadCustomerData(targetId)
                 customerRepository.refreshCustomers()
@@ -110,6 +118,18 @@ class TransactionViewModel @Inject constructor(
                     error = result.exceptionOrNull()?.message ?: "Transaction failed"
                 )
             }
+        }
+    }
+
+    private fun sendAutomaticSms(customerName: String, phoneNumber: String, amount: Double, type: TransactionType, totalBalance: Double) {
+        try {
+            val typeString = if (type == TransactionType.CREDIT) "Credit/Due" else "Payment"
+            val message = "Hello $customerName, a new transaction of $amount ($typeString) has been added. Your total due is now $totalBalance. Thank you!"
+            
+            val smsManager: SmsManager = SmsManager.getDefault()
+            smsManager.sendTextMessage(phoneNumber, null, message, null, null)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
