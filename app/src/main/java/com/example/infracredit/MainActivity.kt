@@ -26,6 +26,7 @@ import com.example.infracredit.ui.customer.AddCustomerScreen
 import com.example.infracredit.ui.customer.ContactImportScreen
 import com.example.infracredit.ui.customer.CustomerDetailScreen
 import com.example.infracredit.ui.customer.CustomerListScreen
+import com.example.infracredit.ui.customer.CustomerViewModel
 import com.example.infracredit.ui.customer.EditCustomerScreen
 import com.example.infracredit.ui.customer.RecycleBinScreen
 import com.example.infracredit.ui.dashboard.DashboardScreen
@@ -51,17 +52,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val updateViewModel: UpdateViewModel = hiltViewModel()
+            val customerViewModel: CustomerViewModel = hiltViewModel()
             var startDestination by remember { mutableStateOf<String?>(null) }
             val isDarkMode by themeManager.isDarkMode
             
             LaunchedEffect(Unit) {
-                // Check for updates on app start from GitHub Raw URL
+                // Check for updates on app start
                 updateViewModel.checkForUpdates("https://raw.githubusercontent.com/partha-hue/InfraCredit-Releases/main/version.json")
 
-                startDestination = if (authRepository.isAuthenticated()) {
-                    Screen.Dashboard.route
+                if (authRepository.isAuthenticated()) {
+                    startDestination = Screen.Dashboard.route
+                    // FORCE SYNC FROM SERVER TO ROOM ON START
+                    customerViewModel.getCustomers(false)
                 } else {
-                    Screen.Login.route
+                    startDestination = Screen.Login.route
                 }
             }
 
