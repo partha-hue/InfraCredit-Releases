@@ -1,21 +1,57 @@
 package com.example.infracredit.ui.settings
 
+import android.content.Context
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.infracredit.data.local.PreferenceManager
+import com.example.infracredit.data.local.TokenManager
 import com.example.infracredit.data.remote.dto.ProfileDto
+import com.example.infracredit.data.repository.BackupRepository
+import com.example.infracredit.data.worker.BackupWorker
 import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.ui.theme.ThemeManager
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class ProfileState(
+    val isLoading: Boolean = false,
+    val profile: ProfileDto? = null,
+    val error: String? = null,
+    val isUpdateSuccess: Boolean = false
+)
+
+data class PasswordState(
+    val isLoading: Boolean = false,
+    val isSuccess: Boolean = false,
+    val error: String? = null,
+    val message: String? = null
+)
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val themeManager: ThemeManager
+    private val tokenManager: TokenManager,
+    private val preferenceManager: PreferenceManager,
+    private val backupRepository: BackupRepository,
+    private val themeManager: ThemeManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    private val WEB_CLIENT_ID = "647476966614-b0m1qn7j9uuqvciv4gif9kcpoau1ja8c.apps.googleusercontent.com"
 
     private val _profileState = mutableStateOf(ProfileState())
     val profileState: State<ProfileState> = _profileState
@@ -23,7 +59,13 @@ class SettingsViewModel @Inject constructor(
     private val _passwordState = mutableStateOf(PasswordState())
     val passwordState: State<PasswordState> = _passwordState
 
-    val isDarkMode: State<Boolean> = themeManager.isDarkMode
+    val isDarkMode = themeManager.isDarkMode
+
+    val lastBackupTime: StateFlow<Long> = preferenceManager.lastBackupTime
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    private val _isBackingUp = mutableStateOf(false)
+    val isBackingUp: State<Boolean> = _isBackingUp
 
     init {
         loadProfile()
@@ -36,39 +78,28 @@ class SettingsViewModel @Inject constructor(
                 .onSuccess { profile ->
                     _profileState.value = ProfileState(profile = profile)
                 }
-                .onFailure { error ->
-                    _profileState.value = ProfileState(error = error.message)
+                .onFailure { e ->
+                    _profileState.value = ProfileState(error = e.message)
                 }
         }
     }
 
-    fun toggleDarkMode() {
-        themeManager.toggleTheme()
-    }
-
-    fun updateProfile(
-        fullName: String, 
-        businessName: String?, 
-        profilePic: String? = null,
-        email: String? = null,
-        address: String? = null
-    ) {
+    fun updateProfile(fullName: String, businessName: String?, profilePic: String?) {
         viewModelScope.launch {
             _profileState.value = _profileState.value.copy(isLoading = true)
-            authRepository.updateProfile(
-                ProfileDto(
-                    fullName = fullName, 
-                    businessName = businessName, 
-                    profilePic = profilePic,
-                    email = email,
-                    address = address
-                )
-            )
-                .onSuccess { profile ->
-                    _profileState.value = ProfileState(profile = profile, isUpdateSuccess = true)
+            authRepository.updateProfile(ProfileDto(
+                fullName = fullName,
+                businessName = businessName,
+                profilePic = profilePic,
+                id = _profileState.value.profile?.id ?: "",
+                phone = _profileState.value.profile?.phone
+            ))
+                .onSuccess {
+                    _profileState.value = _profileState.value.copy(isLoading = false, isUpdateSuccess = true)
+                    loadProfile()
                 }
-                .onFailure { error ->
-                    _profileState.value = _profileState.value.copy(isLoading = false, error = error.message)
+                .onFailure { e ->
+                    _profileState.value = _profileState.value.copy(isLoading = false, error = e.message)
                 }
         }
     }
@@ -80,8 +111,8 @@ class SettingsViewModel @Inject constructor(
                 .onSuccess {
                     _passwordState.value = PasswordState(isSuccess = true)
                 }
-                .onFailure {
-                    _passwordState.value = PasswordState(error = it.message)
+                .onFailure { e ->
+                    _passwordState.value = PasswordState(error = e.message)
                 }
         }
     }
@@ -90,33 +121,72 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _passwordState.value = PasswordState(isLoading = true)
             authRepository.forgotPassword(phone)
-                .onSuccess {
-                    _passwordState.value = PasswordState(isSuccess = true, message = it)
+                .onSuccess { msg ->
+                    _passwordState.value = PasswordState(isSuccess = true, message = msg)
                 }
-                .onFailure {
-                    _passwordState.value = PasswordState(error = it.message)
+                .onFailure { e ->
+                    _passwordState.value = PasswordState(error = e.message)
                 }
+        }
+    }
+
+    fun toggleDarkMode() {
+        themeManager.toggleTheme()
+    }
+
+    fun backupNow(context: Context) {
+        viewModelScope.launch {
+            _isBackingUp.value = true
+            val account = preferenceManager.googleAccountName.first()
+            if (account == null) {
+                signInAndBackup(context)
+            } else {
+                val workRequest = OneTimeWorkRequestBuilder<BackupWorker>().build()
+                WorkManager.getInstance(context).enqueue(workRequest)
+            }
+            _isBackingUp.value = false
+        }
+    }
+
+    private suspend fun signInAndBackup(context: Context) {
+        val credentialManager = CredentialManager.create(context)
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(WEB_CLIENT_ID)
+            .build()
+
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        try {
+            val result = credentialManager.getCredential(context, request)
+            val credential = result.credential
+            if (credential is GoogleIdTokenCredential) {
+                val email = credential.id
+                preferenceManager.saveGoogleAccountName(email)
+                val workRequest = OneTimeWorkRequestBuilder<BackupWorker>().build()
+                WorkManager.getInstance(context).enqueue(workRequest)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun restoreNow() {
+        viewModelScope.launch {
+            val account = preferenceManager.googleAccountName.first()
+            if (account != null) {
+                backupRepository.restoreBackup(account)
+            }
         }
     }
 
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
             authRepository.logout()
+            tokenManager.clearTokens()
             onSuccess()
         }
     }
 }
-
-data class ProfileState(
-    val isLoading: Boolean = false,
-    val profile: ProfileDto? = null,
-    val error: String? = null,
-    val isUpdateSuccess: Boolean = false
-)
-
-data class PasswordState(
-    val isLoading: Boolean = false,
-    val isSuccess: Boolean = false,
-    val message: String? = null,
-    val error: String? = null
-)

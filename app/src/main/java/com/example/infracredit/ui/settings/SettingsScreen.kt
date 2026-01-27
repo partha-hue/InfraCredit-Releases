@@ -28,7 +28,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.infracredit.BuildConfig
 import com.example.infracredit.data.remote.dto.ProfileDto
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +45,8 @@ fun SettingsScreen(
 ) {
     val state = viewModel.profileState.value
     val isDarkMode by viewModel.isDarkMode
+    val lastBackupTime by viewModel.lastBackupTime.collectAsState()
+    val isBackingUp by viewModel.isBackingUp
     val context = LocalContext.current
     var showPasswordDialog by remember { mutableStateOf(false) }
 
@@ -98,6 +104,23 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsSection(title = "Data & Backup") {
+                SettingsItemWithAction(
+                    icon = Icons.Default.CloudUpload,
+                    title = "Backup to Google Drive",
+                    subtitle = if (lastBackupTime > 0) "Last backup: ${formatTimestamp(lastBackupTime)}" else "No backup yet",
+                    actionLabel = "Backup Now",
+                    isLoading = isBackingUp,
+                    onClick = { viewModel.backupNow(context) }
+                )
+                SettingsItem(
+                    icon = Icons.Default.CloudDownload,
+                    title = "Restore from Drive",
+                    subtitle = "Recover data from your last backup",
+                    onClick = { viewModel.restoreNow() }
+                )
+            }
+
             SettingsSection(title = "Display") {
                 SettingsToggleItem(
                     icon = Icons.Default.DarkMode,
@@ -144,7 +167,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
             Text(
-                "InfraCredit v1.0.0 (Production Build)",
+                "InfraCredit v${BuildConfig.VERSION_NAME} (Production Build)",
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 fontSize = 12.sp,
                 color = Color.Gray
@@ -158,6 +181,49 @@ fun SettingsScreen(
             viewModel = viewModel,
             onDismiss = { showPasswordDialog = false }
         )
+    }
+}
+
+fun formatTimestamp(timestamp: Long): String {
+    return try {
+        val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+        sdf.format(Date(timestamp))
+    } catch (e: Exception) {
+        "Unknown"
+    }
+}
+
+@Composable
+fun SettingsItemWithAction(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    actionLabel: String,
+    isLoading: Boolean = false,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = Color.Gray)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(subtitle, fontSize = 12.sp, color = Color.Gray)
+            }
+        }
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+        } else {
+            TextButton(onClick = onClick) {
+                Text(actionLabel, fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }
 
