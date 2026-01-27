@@ -1,6 +1,7 @@
 package com.example.infracredit.data.repository
 
 import android.content.Context
+import com.example.infracredit.data.local.AppDatabase
 import com.example.infracredit.data.local.PreferenceManager
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.FileContent
@@ -12,8 +13,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.Collections
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,47 +26,54 @@ class BackupRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferenceManager: PreferenceManager
 ) {
-    private val DB_NAME = "infracredit.db"
+    private val DB_NAME = AppDatabase.DATABASE_NAME
+    private val BACKUP_FILE_NAME = "infracredit_backup.zip"
 
     suspend fun uploadBackup(googleAccountName: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            val dbFile = context.getDatabasePath(DB_NAME)
+            if (!dbFile.exists()) {
+                return@withContext Result.failure(Exception("No local data found. Add a customer first."))
+            }
+
+            // Create a ZIP containing the DB and its journal files
+            val zipFile = File(context.cacheDir, BACKUP_FILE_NAME)
+            ZipOutputStream(FileOutputStream(zipFile)).use { zos ->
+                val filesToBackup = listOf(DB_NAME, "$DB_NAME-shm", "$DB_NAME-wal")
+                filesToBackup.forEach { fileName ->
+                    val file = context.getDatabasePath(fileName)
+                    if (file.exists()) {
+                        zos.putNextEntry(ZipEntry(fileName))
+                        FileInputStream(file).use { it.copyTo(zos) }
+                        zos.closeEntry()
+                    }
+                }
+            }
+
             val credential = GoogleAccountCredential.usingOAuth2(
                 context, Collections.singleton(DriveScopes.DRIVE_APPDATA)
-            ).apply {
-                selectedAccountName = googleAccountName
-            }
+            ).apply { selectedAccountName = googleAccountName }
 
-            val driveService = Drive.Builder(
-                NetHttpTransport(),
-                GsonFactory.getDefaultInstance(),
-                credential
-            ).setApplicationName("InfraCredit").build()
+            val driveService = Drive.Builder(NetHttpTransport(), GsonFactory.getDefaultInstance(), credential)
+                .setApplicationName("InfraCredit").build()
 
-            val dbFile = context.getDatabasePath(DB_NAME)
-            if (!dbFile.exists()) return@withContext Result.failure(Exception("Database file not found"))
-
-            // Find existing backup file in AppData folder
             val existingFiles = driveService.files().list()
                 .setSpaces("appDataFolder")
-                .setQ("name = '$DB_NAME'")
+                .setQ("name = '$BACKUP_FILE_NAME'")
                 .execute()
 
-            val fileMetadata = com.google.api.services.drive.model.File().apply {
-                name = DB_NAME
-                parents = Collections.singletonList("appDataFolder")
-            }
-
-            val mediaContent = FileContent("application/x-sqlite3", dbFile)
-
+            val mediaContent = FileContent("application/zip", zipFile)
             if (existingFiles.files.isNotEmpty()) {
-                // Update existing file
-                val fileId = existingFiles.files[0].id
-                driveService.files().update(fileId, null, mediaContent).execute()
+                driveService.files().update(existingFiles.files[0].id, null, mediaContent).execute()
             } else {
-                // Create new file
+                val fileMetadata = com.google.api.services.drive.model.File().apply {
+                    name = BACKUP_FILE_NAME
+                    parents = Collections.singletonList("appDataFolder")
+                }
                 driveService.files().create(fileMetadata, mediaContent).execute()
             }
 
+            zipFile.delete()
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -74,30 +85,32 @@ class BackupRepository @Inject constructor(
         try {
             val credential = GoogleAccountCredential.usingOAuth2(
                 context, Collections.singleton(DriveScopes.DRIVE_APPDATA)
-            ).apply {
-                selectedAccountName = googleAccountName
-            }
+            ).apply { selectedAccountName = googleAccountName }
 
-            val driveService = Drive.Builder(
-                NetHttpTransport(),
-                GsonFactory.getDefaultInstance(),
-                credential
-            ).setApplicationName("InfraCredit").build()
+            val driveService = Drive.Builder(NetHttpTransport(), GsonFactory.getDefaultInstance(), credential)
+                .setApplicationName("InfraCredit").build()
 
             val files = driveService.files().list()
                 .setSpaces("appDataFolder")
-                .setQ("name = '$DB_NAME'")
+                .setQ("name = '$BACKUP_FILE_NAME'")
                 .execute()
 
             if (files.files.isEmpty()) return@withContext Result.failure(Exception("No backup found on Drive"))
 
-            val fileId = files.files[0].id
-            val dbFile = context.getDatabasePath(DB_NAME)
-            
-            FileOutputStream(dbFile).use { outputStream ->
-                driveService.files().get(fileId).executeMediaAndDownloadTo(outputStream)
-            }
+            val zipFile = File(context.cacheDir, BACKUP_FILE_NAME)
+            FileOutputStream(zipFile).use { driveService.files().get(files.files[0].id).executeMediaAndDownloadTo(it) }
 
+            // Extract ZIP to database folder
+            java.util.zip.ZipFile(zipFile).use { zip ->
+                zip.entries().asSequence().forEach { entry ->
+                    val outFile = context.getDatabasePath(entry.name)
+                    zip.getInputStream(entry).use { input ->
+                        FileOutputStream(outFile).use { input.copyTo(it) }
+                    }
+                }
+            }
+            
+            zipFile.delete()
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
