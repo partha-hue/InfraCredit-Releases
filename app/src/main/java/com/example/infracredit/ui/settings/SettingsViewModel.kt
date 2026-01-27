@@ -1,6 +1,7 @@
 package com.example.infracredit.ui.settings
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.credentials.CredentialManager
@@ -8,6 +9,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.example.infracredit.data.local.PreferenceManager
 import com.example.infracredit.data.local.TokenManager
@@ -136,15 +138,29 @@ class SettingsViewModel @Inject constructor(
 
     fun backupNow(context: Context) {
         viewModelScope.launch {
-            _isBackingUp.value = true
             val account = preferenceManager.googleAccountName.first()
             if (account == null) {
                 signInAndBackup(context)
             } else {
+                _isBackingUp.value = true
                 val workRequest = OneTimeWorkRequestBuilder<BackupWorker>().build()
-                WorkManager.getInstance(context).enqueue(workRequest)
+                val workManager = WorkManager.getInstance(context)
+                workManager.enqueue(workRequest)
+                
+                // Observe work status for UI feedback
+                workManager.getWorkInfoByIdLiveData(workRequest.id).observeForever { workInfo ->
+                    if (workInfo != null) {
+                        if (workInfo.state.isFinished) {
+                            _isBackingUp.value = false
+                            if (workInfo.state == WorkInfo.State.SUCCEEDED) {
+                                Toast.makeText(context, "Backup Successful", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Backup Failed: No local data found", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                }
             }
-            _isBackingUp.value = false
         }
     }
 
@@ -165,11 +181,12 @@ class SettingsViewModel @Inject constructor(
             if (credential is GoogleIdTokenCredential) {
                 val email = credential.id
                 preferenceManager.saveGoogleAccountName(email)
-                val workRequest = OneTimeWorkRequestBuilder<BackupWorker>().build()
-                WorkManager.getInstance(context).enqueue(workRequest)
+                Toast.makeText(context, "Account Linked: $email", Toast.LENGTH_SHORT).show()
+                backupNow(context) // Retry backup now that we have the account
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            _isBackingUp.value = false
+            Toast.makeText(context, "Sign-in failed", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -177,7 +194,16 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val account = preferenceManager.googleAccountName.first()
             if (account != null) {
-                backupRepository.restoreBackup(account)
+                _isBackingUp.value = true
+                val result = backupRepository.restoreBackup(account)
+                _isBackingUp.value = false
+                if (result.isSuccess) {
+                    Toast.makeText(context, "Restore Successful. Please restart the app.", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "Restore Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                Toast.makeText(context, "Please backup first to link account", Toast.LENGTH_SHORT).show()
             }
         }
     }

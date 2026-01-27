@@ -1,6 +1,8 @@
 package com.example.infracredit.di
 
 import com.example.infracredit.data.local.TokenManager
+import com.example.infracredit.data.local.dao.CustomerDao
+import com.example.infracredit.data.local.dao.TransactionDao
 import com.example.infracredit.data.remote.AuthInterceptor
 import com.example.infracredit.data.remote.InfracreditApi
 import com.example.infracredit.data.remote.UpdateService
@@ -86,14 +88,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideCustomerRepository(api: InfracreditApi): CustomerRepository {
-        return CustomerRepositoryImpl(api)
+    fun provideCustomerRepository(api: InfracreditApi, customerDao: CustomerDao): CustomerRepository {
+        return CustomerRepositoryImpl(api, customerDao)
     }
 
     @Provides
     @Singleton
-    fun provideTransactionRepository(api: InfracreditApi): TransactionRepository {
-        return TransactionRepositoryImpl(api)
+    fun provideTransactionRepository(api: InfracreditApi, transactionDao: TransactionDao): TransactionRepository {
+        return TransactionRepositoryImpl(api, transactionDao)
     }
 
     @Provides
