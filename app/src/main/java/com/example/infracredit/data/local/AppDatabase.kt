@@ -9,7 +9,7 @@ import com.example.infracredit.data.local.entity.TransactionEntity
 
 @Database(
     entities = [CustomerEntity::class, TransactionEntity::class],
-    version = 1,
+    version = 2, // Incremented version for schema changes
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

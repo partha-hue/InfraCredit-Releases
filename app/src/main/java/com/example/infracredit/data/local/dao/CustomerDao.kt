@@ -6,11 +6,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CustomerDao {
-    @Query("SELECT * FROM customers ORDER BY name ASC")
-    fun getAllCustomers(): Flow<List<CustomerEntity>>
+    @Query("SELECT * FROM customers WHERE ownerPhone = :ownerPhone AND isDeleted = 0 ORDER BY name ASC")
+    fun getAllCustomers(ownerPhone: String): Flow<List<CustomerEntity>>
 
-    @Query("SELECT * FROM customers WHERE id = :id")
-    suspend fun getCustomerById(id: String): CustomerEntity?
+    @Query("SELECT * FROM customers WHERE ownerPhone = :ownerPhone AND isDeleted = 1 ORDER BY name ASC")
+    fun getDeletedCustomers(ownerPhone: String): Flow<List<CustomerEntity>>
+
+    @Query("SELECT * FROM customers WHERE id = :id AND ownerPhone = :ownerPhone")
+    suspend fun getCustomerById(id: String, ownerPhone: String): CustomerEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCustomers(customers: List<CustomerEntity>)
@@ -18,11 +21,17 @@ interface CustomerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCustomer(customer: CustomerEntity)
 
-    @Query("DELETE FROM customers WHERE id = :id")
-    suspend fun deleteCustomer(id: String)
+    @Query("UPDATE customers SET isDeleted = :isDeleted WHERE id = :id AND ownerPhone = :ownerPhone")
+    suspend fun updateDeleteStatus(id: String, ownerPhone: String, isDeleted: Int)
 
-    @Query("SELECT * FROM customers WHERE isSynced = 0")
-    suspend fun getUnsyncedCustomers(): List<CustomerEntity>
+    @Query("DELETE FROM customers WHERE id = :id AND ownerPhone = :ownerPhone")
+    suspend fun deleteCustomerPermanently(id: String, ownerPhone: String)
+
+    @Query("SELECT * FROM customers WHERE isSynced = 0 AND ownerPhone = :ownerPhone")
+    suspend fun getUnsyncedCustomers(ownerPhone: String): List<CustomerEntity>
+
+    @Query("DELETE FROM customers WHERE ownerPhone = :ownerPhone")
+    suspend fun clearAllForUser(ownerPhone: String)
 
     @Query("DELETE FROM customers")
     suspend fun clearAll()

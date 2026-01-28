@@ -1,19 +1,24 @@
 package com.example.infracredit.ui.auth
 
+import android.content.Context
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.*
 import com.example.infracredit.data.remote.dto.LoginRequest
 import com.example.infracredit.data.remote.dto.RegisterRequest
+import com.example.infracredit.data.worker.SyncWorker
 import com.example.infracredit.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _state = mutableStateOf(AuthState())
@@ -24,6 +29,7 @@ class AuthViewModel @Inject constructor(
             _state.value = AuthState(isLoading = true)
             repository.login(LoginRequest(phone, pass))
                 .onSuccess {
+                    triggerSync()
                     _state.value = AuthState(isAuthenticated = true)
                 }
                 .onFailure { e ->
@@ -48,11 +54,29 @@ class AuthViewModel @Inject constructor(
                 email = email
             ))
                 .onSuccess {
+                    triggerSync()
                     _state.value = AuthState(isAuthenticated = true)
                 }
                 .onFailure { e ->
                     _state.value = AuthState(error = "Registration failed. Phone might already be in use.")
                 }
         }
+    }
+
+    private fun triggerSync() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+            .setConstraints(constraints)
+            .addTag("data_sync")
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "data_sync",
+            ExistingWorkPolicy.REPLACE,
+            syncRequest
+        )
     }
 }

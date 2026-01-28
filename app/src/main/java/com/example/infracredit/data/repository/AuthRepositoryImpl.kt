@@ -1,5 +1,6 @@
 package com.example.infracredit.data.repository
 
+import com.example.infracredit.data.local.AppDatabase
 import com.example.infracredit.data.local.TokenManager
 import com.example.infracredit.data.remote.InfracreditApi
 import com.example.infracredit.data.remote.dto.*
@@ -9,13 +10,15 @@ import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val api: InfracreditApi,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val database: AppDatabase
 ) : AuthRepository {
 
     override suspend fun login(request: LoginRequest): Result<AuthResponse> {
         return try {
             val response = api.login(request)
             tokenManager.saveTokens(response.accessToken, response.refreshToken)
+            tokenManager.saveOwnerPhone(request.phone)
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
@@ -26,6 +29,7 @@ class AuthRepositoryImpl @Inject constructor(
         return try {
             val response = api.register(request)
             tokenManager.saveTokens(response.accessToken, response.refreshToken)
+            tokenManager.saveOwnerPhone(request.phone)
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
@@ -52,6 +56,7 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun logout() {
         tokenManager.clearTokens()
+        database.clearAllTables()
     }
 
     override suspend fun isAuthenticated(): Boolean {

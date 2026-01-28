@@ -30,7 +30,10 @@ interface InfracreditApi {
     suspend fun getDashboardSummary(): DashboardSummaryDto
 
     @GET("customers")
-    suspend fun getCustomers(@Query("deleted") deleted: Boolean = false): List<CustomerDto>
+    suspend fun getCustomers(
+        @Query("ownerPhone") ownerPhone: String,
+        @Query("deleted") deleted: Boolean = false
+    ): List<CustomerDto>
 
     @POST("customers")
     suspend fun addCustomer(@Body customer: CustomerDto): CustomerDto
@@ -45,7 +48,10 @@ interface InfracreditApi {
     suspend fun deleteCustomer(@Path("id") id: String): GenericResponse
 
     @GET("customers/{id}/transactions")
-    suspend fun getTransactions(@Path("id") customerId: String): List<TransactionDto>
+    suspend fun getTransactions(
+        @Path("id") customerId: String,
+        @Query("ownerPhone") ownerPhone: String
+    ): List<TransactionDto>
 
     @POST("transactions")
     suspend fun addTransaction(@Body transaction: TransactionDto): TransactionDto
