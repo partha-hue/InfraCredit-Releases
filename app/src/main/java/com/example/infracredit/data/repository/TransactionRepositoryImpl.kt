@@ -41,7 +41,7 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getTransactions(customerId: String): Result<List<Transaction>> {
         return try {
             val ownerPhone = getOwnerPhone()
-            val response = api.getTransactions(customerId)
+            val response = api.getTransactions(customerId, ownerPhone)
             val transactions = response.map { it.toDomain() }
             
             // Sync to local DB

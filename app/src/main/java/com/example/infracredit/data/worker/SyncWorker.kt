@@ -29,13 +29,13 @@ class SyncWorker @AssistedInject constructor(
 
         return try {
             // 1. Fetch Customers
-            val customersResponse = api.getCustomers(deleted = false)
+            val customersResponse = api.getCustomers(ownerPhone, deleted = false)
             val customerEntities = customersResponse.map { it.toDomain().toEntity(ownerPhone) }
             customerDao.insertCustomers(customerEntities)
 
             // 2. Fetch Transactions for each customer
             customerEntities.forEach { customer ->
-                val transactionsResponse = api.getTransactions(customer.id)
+                val transactionsResponse = api.getTransactions(customer.id, ownerPhone)
                 val transactionEntities = transactionsResponse.map { it.toDomain().toEntity(ownerPhone) }
                 transactionDao.insertTransactions(transactionEntities)
             }
