@@ -46,6 +46,7 @@ fun LoginScreen(
         if (passwordState.isSuccess && passwordState.message != null) {
             Toast.makeText(context, passwordState.message, Toast.LENGTH_LONG).show()
             showForgotDialog = false
+            settingsViewModel.clearPasswordState()
         }
     }
 
@@ -56,7 +57,6 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo and Text Branding
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -72,7 +72,7 @@ fun LoginScreen(
                     text = "InfraCredit",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF0054A6) // Matching the dark blue in logo
+                    color = Color(0xFF0054A6)
                 )
                 Text(
                     text = "Business Ledger",
@@ -107,7 +107,10 @@ fun LoginScreen(
         )
 
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-            TextButton(onClick = { showForgotDialog = true }) {
+            TextButton(onClick = { 
+                settingsViewModel.clearPasswordState()
+                showForgotDialog = true 
+            }) {
                 Text("Forgot Password?")
             }
         }
@@ -144,33 +147,72 @@ fun LoginScreen(
 
     if (showForgotDialog) {
         var resetPhone by remember { mutableStateOf(phone) }
+        var otpCode by remember { mutableStateOf("") }
+        var newPassword by remember { mutableStateOf("") }
+
         AlertDialog(
             onDismissRequest = { showForgotDialog = false },
-            title = { Text("Reset Password") },
+            title = { Text(if (!passwordState.isOtpSent) "Reset Password" else if (!passwordState.isOtpVerified) "Verify OTP" else "New Password") },
             text = {
                 Column {
-                    Text("Enter your registered phone number to receive a reset link.", fontSize = 14.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedTextField(
-                        value = resetPhone,
-                        onValueChange = { resetPhone = it },
-                        label = { Text("Phone Number") },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-                    )
+                    if (!passwordState.isOtpSent) {
+                        Text("Enter your registered phone number to receive a reset OTP.", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = resetPhone,
+                            onValueChange = { resetPhone = it },
+                            label = { Text("Phone Number") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                        )
+                    } else if (!passwordState.isOtpVerified) {
+                        Text("Enter the 6-digit OTP sent to $resetPhone", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = otpCode,
+                            onValueChange = { if (it.length <= 6) otpCode = it },
+                            label = { Text("6-Digit OTP") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+                        )
+                    } else {
+                        Text("Enter your new password.", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = newPassword,
+                            onValueChange = { newPassword = it },
+                            label = { Text("New Password") },
+                            modifier = Modifier.fillMaxWidth(),
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                        )
+                    }
+
                     if (passwordState.error != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(passwordState.error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                     }
                 }
             },
             confirmButton = {
                 Button(
-                    onClick = { settingsViewModel.forgotPassword(resetPhone) },
-                    enabled = resetPhone.isNotBlank() && !passwordState.isLoading,
+                    onClick = {
+                        if (!passwordState.isOtpSent) {
+                            settingsViewModel.forgotPassword(resetPhone)
+                        } else if (!passwordState.isOtpVerified) {
+                            settingsViewModel.verifyOtp(resetPhone, otpCode)
+                        } else {
+                            settingsViewModel.resetPasswordWithOtp(newPassword)
+                        }
+                    },
+                    enabled = !passwordState.isLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054A6))
                 ) {
-                    if (passwordState.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                    else Text("Send Link")
+                    if (passwordState.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                    } else {
+                        Text(if (!passwordState.isOtpSent) "Send OTP" else if (!passwordState.isOtpVerified) "Verify" else "Update Password")
+                    }
                 }
             },
             dismissButton = {

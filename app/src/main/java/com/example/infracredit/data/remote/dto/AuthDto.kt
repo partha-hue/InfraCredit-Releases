@@ -25,3 +25,16 @@ data class AuthResponse(
     val fullName: String,
     val businessName: String? = null
 )
+
+@Serializable
+data class VerifyOtpRequest(
+    val phone: String,
+    val otp: String
+)
+
+@Serializable
+data class VerifyOtpResponse(
+    val success: Boolean,
+    val accessToken: String? = null,
+    val error: String? = null
+)

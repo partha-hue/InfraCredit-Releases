@@ -20,6 +20,9 @@ interface InfracreditApi {
     @POST("auth/forgot-password")
     suspend fun forgotPassword(@Query("phone") phone: String): GenericResponse
 
+    @POST("auth/verify-otp")
+    suspend fun verifyOtp(@Body request: VerifyOtpRequest): VerifyOtpResponse
+
     @POST("auth/reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): GenericResponse
 

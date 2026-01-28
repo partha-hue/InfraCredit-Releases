@@ -61,13 +61,27 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun forgotPassword(phone: String): Result<String> {
         return try {
             val response = api.forgotPassword(phone)
-            Result.success(response.message ?: "Reset link sent")
+            Result.success(response.message ?: "OTP sent to your phone")
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun resetPassword(oldPass: String, newPass: String): Result<String> {
+    override suspend fun verifyOtp(phone: String, otp: String): Result<String> {
+        return try {
+            val response = api.verifyOtp(VerifyOtpRequest(phone, otp))
+            if (response.success && response.accessToken != null) {
+                tokenManager.saveTokens(response.accessToken, "") // Use temp token for reset
+                Result.success("OTP Verified")
+            } else {
+                Result.failure(Exception(response.error ?: "Invalid OTP"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun resetPassword(oldPass: String?, newPass: String): Result<String> {
         return try {
             val response = api.resetPassword(ResetPasswordRequest(oldPassword = oldPass, newPassword = newPass))
             Result.success(response.message ?: "Password updated")

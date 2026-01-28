@@ -1,9 +1,6 @@
 package com.example.infracredit.domain.repository
 
-import com.example.infracredit.data.remote.dto.AuthResponse
-import com.example.infracredit.data.remote.dto.LoginRequest
-import com.example.infracredit.data.remote.dto.ProfileDto
-import com.example.infracredit.data.remote.dto.RegisterRequest
+import com.example.infracredit.data.remote.dto.*
 
 interface AuthRepository {
     suspend fun login(request: LoginRequest): Result<AuthResponse>
@@ -13,5 +10,6 @@ interface AuthRepository {
     suspend fun logout()
     suspend fun isAuthenticated(): Boolean
     suspend fun forgotPassword(phone: String): Result<String>
-    suspend fun resetPassword(oldPass: String, newPass: String): Result<String>
+    suspend fun verifyOtp(phone: String, otp: String): Result<String>
+    suspend fun resetPassword(oldPass: String?, newPass: String): Result<String>
 }
