@@ -76,7 +76,7 @@ fun SettingsScreen(
                     viewModel.updateProfile(
                         fullName = state.profile?.fullName ?: "",
                         businessName = state.profile?.businessName,
-                        profilePic = uri.toString()
+                        profilePicUri = uri
                     )
                 }
             )

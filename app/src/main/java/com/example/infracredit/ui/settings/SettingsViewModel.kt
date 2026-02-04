@@ -2,6 +2,10 @@ package com.example.infracredit.ui.settings
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.State
@@ -25,11 +29,15 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import javax.inject.Inject
 
 data class ProfileState(
@@ -91,13 +99,29 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateProfile(fullName: String, businessName: String?, profilePic: String?) {
+    fun updateProfile(fullName: String, businessName: String?, profilePicUri: Uri?) {
         viewModelScope.launch {
             _profileState.value = _profileState.value.copy(isLoading = true)
+            
+            val profilePicBase64 = profilePicUri?.let { uri ->
+                withContext(Dispatchers.IO) {
+                    try {
+                        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+                        val bitmap = BitmapFactory.decodeStream(inputStream)
+                        val outputStream = ByteArrayOutputStream()
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream)
+                        val byteArray = outputStream.toByteArray()
+                        Base64.encodeToString(byteArray, Base64.DEFAULT)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            } ?: _profileState.value.profile?.profilePic
+
             authRepository.updateProfile(ProfileDto(
                 fullName = fullName,
                 businessName = businessName,
-                profilePic = profilePic,
+                profilePic = profilePicBase64,
                 id = _profileState.value.profile?.id ?: "",
                 phone = _profileState.value.profile?.phone
             ))
@@ -284,7 +308,6 @@ class SettingsViewModel @Inject constructor(
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
             authRepository.logout()
-            tokenManager.clearTokens()
             onSuccess()
         }
     }

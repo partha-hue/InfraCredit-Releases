@@ -117,14 +117,6 @@ fun DashboardScreen(
                 )
             )
         },
-        bottomBar = {
-            WhatsAppBottomNavigation(
-                onCustomersClick = { /* Already here */ },
-                onCalculatorClick = onNavigateToCalculator,
-                onContactsClick = onNavigateToContacts,
-                onProfileClick = onNavigateToSettings
-            )
-        },
         floatingActionButton = {
             SmallFloatingActionButton(
                 onClick = onNavigateToAddCustomer,
@@ -166,8 +158,14 @@ fun DashboardScreen(
                     }
                 } else {
                     val filteredCustomers = custState.customers.filter {
-                        it.name.contains(searchQuery, ignoreCase = true) &&
-                        (selectedFilter == "All" || (selectedFilter == "Credit Due" && it.totalDue > 0))
+                        val matchesSearch = it.name.contains(searchQuery, ignoreCase = true)
+                        val matchesFilter = when (selectedFilter) {
+                            "All" -> true
+                            "Credit Due" -> it.totalDue > 0
+                            "Clear" -> it.totalDue == 0.0
+                            else -> true
+                        }
+                        matchesSearch && matchesFilter
                     }
                     
                     items(filteredCustomers) { customer ->
@@ -349,50 +347,14 @@ fun WhatsAppCustomerItem(customer: Customer, onClick: (String) -> Unit) {
                     text = "₹ ${kotlin.math.abs(customer.totalDue)}",
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 16.sp,
-                    color = if (isCredit) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                    color = if (isCredit) Color(0xFFD32F2F) else if (customer.totalDue < 0) Color(0xFF388E3C) else Color.Gray
                 )
                 Text(
-                    text = if (isCredit) "You'll Get" else "You'll Give",
+                    text = if (isCredit) "You'll Get" else if (customer.totalDue < 0) "You'll Give" else "Settled",
                     fontSize = 10.sp,
-                    color = (if (isCredit) Color(0xFFD32F2F) else Color(0xFF388E3C)).copy(alpha = 0.7f)
+                    color = (if (isCredit) Color(0xFFD32F2F) else if (customer.totalDue < 0) Color(0xFF388E3C) else Color.Gray).copy(alpha = 0.7f)
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun WhatsAppBottomNavigation(
-    onCustomersClick: () -> Unit,
-    onCalculatorClick: () -> Unit,
-    onContactsClick: () -> Unit,
-    onProfileClick: () -> Unit
-) {
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
-    ) {
-        val items = listOf(
-            Triple("Customers", Icons.Default.People, onCustomersClick),
-            Triple("Calculator", Icons.Outlined.Calculate, onCalculatorClick),
-            Triple("Contacts", Icons.Outlined.Contacts, onContactsClick),
-            Triple("Settings", Icons.Default.Settings, onProfileClick)
-        )
-        
-        items.forEach { (label, icon, onClick) ->
-            NavigationBarItem(
-                selected = label == "Customers",
-                onClick = onClick,
-                icon = { Icon(icon, contentDescription = label) },
-                label = { Text(label, fontSize = 10.sp) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFF0054A6),
-                    selectedTextColor = Color(0xFF0054A6),
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    indicatorColor = Color(0xFF0054A6).copy(alpha = 0.1f)
-                )
-            )
         }
     }
 }
