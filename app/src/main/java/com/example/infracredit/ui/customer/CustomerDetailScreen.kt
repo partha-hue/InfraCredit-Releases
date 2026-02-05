@@ -1,12 +1,9 @@
 package com.example.infracredit.ui.customer
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
+import android.telephony.SmsManager
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -33,7 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.infracredit.domain.model.Transaction
 import com.example.infracredit.domain.model.TransactionType
@@ -81,20 +77,8 @@ fun CustomerDetailScreen(
         }
     }
 
-    val smsPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (!isGranted) {
-                Toast.makeText(context, "SMS Permission is required to send automatic alerts", Toast.LENGTH_LONG).show()
-            }
-        }
-    )
-
     LaunchedEffect(Unit) {
         viewModel.loadCustomerData()
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-            smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
-        }
     }
 
     LaunchedEffect(state.transactions.size) {
@@ -105,6 +89,20 @@ fun CustomerDetailScreen(
 
     LaunchedEffect(addTxState.isSuccess) {
         if (addTxState.isSuccess) {
+            val customer = state.customer
+            val lastTx = addTxState.lastTransaction
+            if (customer != null && lastTx != null && !customer.phone.isNullOrBlank()) {
+                try {
+                    val smsManager = context.getSystemService(SmsManager::class.java)
+                    val type = if (lastTx.type == TransactionType.CREDIT) "Credit" else "Payment"
+                    val label = if (totalDue >= 0) "Total Due" else "Advance"
+                    val message = "Dear ${customer.name}, ₹${lastTx.amount} ($type) recorded. $label: ₹${abs(totalDue)}. - Sent via InfraCredit"
+                    smsManager.sendTextMessage(customer.phone, null, message, null, null)
+                    Toast.makeText(context, "Automatic SMS Sent to ${customer.name}", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Failed to send SMS: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
             viewModel.resetAddTxState()
             showAddDialog = false
             editingTransaction = null

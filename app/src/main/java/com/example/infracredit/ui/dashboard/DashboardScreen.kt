@@ -13,8 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Calculate
-import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -116,16 +114,6 @@ fun DashboardScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        },
-        floatingActionButton = {
-            SmallFloatingActionButton(
-                onClick = onNavigateToAddCustomer,
-                containerColor = Color(0xFF0054A6),
-                contentColor = Color.White,
-                shape = CircleShape,
-            ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = "Add Customer")
-            }
         }
     ) { padding ->
         Column(
@@ -148,7 +136,7 @@ fun DashboardScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 if (custState.isLoading) {
                     item {

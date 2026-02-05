@@ -1,6 +1,5 @@
 package com.example.infracredit.ui.customer
 
-import android.telephony.SmsManager
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
@@ -17,10 +16,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
-import kotlin.math.abs
 
 @HiltViewModel
 class TransactionViewModel @Inject constructor(
@@ -105,24 +101,8 @@ class TransactionViewModel @Inject constructor(
             _addTxState.value = _addTxState.value.copy(isLoading = true)
             val result = transactionRepository.addTransaction(targetId, amount, type, description)
             if (result.isSuccess) {
-                val transaction = result.getOrNull()
-                val customer = _detailState.value.customer
-                val owner = _ownerProfile.value
-                
-                if (customer?.phone != null && transaction != null) {
-                    val newTotalDue = customer.totalDue + (if(type == TransactionType.CREDIT) amount else -amount)
-                    sendAutomaticSms(
-                        customerName = customer.name, 
-                        phoneNumber = customer.phone, 
-                        amount = amount, 
-                        type = type, 
-                        totalBalance = newTotalDue,
-                        ownerName = owner?.fullName ?: "Shop Owner",
-                        isEdit = false
-                    )
-                }
-
-                _addTxState.value = AddTransactionState(isSuccess = true)
+                val newTx = result.getOrNull()
+                _addTxState.value = AddTransactionState(isSuccess = true, lastTransaction = newTx)
                 loadCustomerData(targetId)
                 customerRepository.refreshCustomers()
             } else {
@@ -139,28 +119,9 @@ class TransactionViewModel @Inject constructor(
             _addTxState.value = _addTxState.value.copy(isLoading = true)
             val result = transactionRepository.updateTransaction(transactionId, amount, type, description)
             if (result.isSuccess) {
-                val transaction = result.getOrNull()
-                val customer = _detailState.value.customer
-                val owner = _ownerProfile.value
-
-                // We need the updated total due for the SMS
-                // Refreshing customers will get the new total due from backend
+                val updatedTx = result.getOrNull()
                 customerRepository.refreshCustomers()
-                val updatedCustomer = customerRepository.getCustomerById(customerIdFromState ?: "").getOrNull()
-                
-                if (updatedCustomer?.phone != null && transaction != null) {
-                    sendAutomaticSms(
-                        customerName = updatedCustomer.name,
-                        phoneNumber = updatedCustomer.phone,
-                        amount = amount,
-                        type = type,
-                        totalBalance = updatedCustomer.totalDue,
-                        ownerName = owner?.fullName ?: "Shop Owner",
-                        isEdit = true
-                    )
-                }
-
-                _addTxState.value = AddTransactionState(isSuccess = true)
+                _addTxState.value = AddTransactionState(isSuccess = true, lastTransaction = updatedTx)
                 loadCustomerData()
             } else {
                 _addTxState.value = _addTxState.value.copy(
@@ -185,23 +146,6 @@ class TransactionViewModel @Inject constructor(
                     error = result.exceptionOrNull()?.message ?: "Delete failed"
                 )
             }
-        }
-    }
-
-    private fun sendAutomaticSms(customerName: String, phoneNumber: String, amount: Double, type: TransactionType, totalBalance: Double, ownerName: String, isEdit: Boolean) {
-        try {
-            val prefix = if (isEdit) "UPDATE: " else ""
-            val typeString = if (type == TransactionType.CREDIT) "Given (Credit)" else "Received (Payment)"
-            val balanceLabel = if (totalBalance >= 0) "Total Due" else "Advance"
-            val currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy hh:mm a"))
-            
-            val message = "${prefix}Dear $customerName, ₹$amount ($typeString) recorded at $currentTime. $balanceLabel: ₹${abs(totalBalance)}. - Sent by $ownerName via InfraCredit"
-            
-            val smsManager: SmsManager = SmsManager.getDefault()
-            val parts = smsManager.divideMessage(message)
-            smsManager.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 

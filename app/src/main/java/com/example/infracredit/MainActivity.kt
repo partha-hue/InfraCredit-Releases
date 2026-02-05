@@ -4,14 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -101,36 +104,96 @@ fun MainContainer(startDestination: String) {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
-                ) {
-                    val items = listOf(
-                        Quadruple("Customers", Icons.Default.People, Screen.Dashboard.route),
-                        Quadruple("Calculator", Icons.Outlined.Calculate, Screen.Calculator.route),
-                        Quadruple("Contacts", Icons.Outlined.Contacts, Screen.Contacts.route),
-                        Quadruple("Settings", Icons.Default.Settings, Screen.Settings.route)
-                    )
-
-                    items.forEach { (label, icon, route) ->
-                        val isSelected = currentDestination?.hierarchy?.any { it.route == route } == true
+                Box(contentAlignment = Alignment.BottomCenter) {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp,
+                        modifier = Modifier.height(72.dp)
+                    ) {
                         NavigationBarItem(
-                            selected = isSelected,
+                            selected = currentDestination?.hierarchy?.any { it.route == Screen.Dashboard.route } == true,
                             onClick = {
-                                navController.navigate(route) {
+                                navController.navigate(Screen.Dashboard.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
                             },
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            icon = { Icon(Icons.Default.People, contentDescription = "Customers") },
+                            label = { Text("Customers", fontSize = 10.sp) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color(0xFF0054A6),
                                 selectedTextColor = Color(0xFF0054A6),
                                 indicatorColor = Color(0xFF0054A6).copy(alpha = 0.1f)
                             )
                         )
+                        NavigationBarItem(
+                            selected = currentDestination?.hierarchy?.any { it.route == Screen.Calculator.route } == true,
+                            onClick = {
+                                navController.navigate(Screen.Calculator.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(Icons.Outlined.Calculate, contentDescription = "Calculator") },
+                            label = { Text("Calculator", fontSize = 10.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color(0xFF0054A6),
+                                selectedTextColor = Color(0xFF0054A6),
+                                indicatorColor = Color(0xFF0054A6).copy(alpha = 0.1f)
+                            )
+                        )
+
+                        Spacer(Modifier.width(72.dp)) // Increased spacer for FAB
+
+                        NavigationBarItem(
+                            selected = currentDestination?.hierarchy?.any { it.route == Screen.Contacts.route } == true,
+                            onClick = {
+                                navController.navigate(Screen.Contacts.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(Icons.Outlined.Contacts, contentDescription = "Contacts") },
+                            label = { Text("Contacts", fontSize = 10.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color(0xFF0054A6),
+                                selectedTextColor = Color(0xFF0054A6),
+                                indicatorColor = Color(0xFF0054A6).copy(alpha = 0.1f)
+                            )
+                        )
+                        NavigationBarItem(
+                            selected = currentDestination?.hierarchy?.any { it.route == Screen.Settings.route } == true,
+                            onClick = {
+                                navController.navigate(Screen.Settings.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                            label = { Text("Settings", fontSize = 10.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color(0xFF0054A6),
+                                selectedTextColor = Color(0xFF0054A6),
+                                indicatorColor = Color(0xFF0054A6).copy(alpha = 0.1f)
+                            )
+                        )
+                    }
+
+                    FloatingActionButton(
+                        onClick = { navController.navigate(Screen.AddCustomer.route) },
+                        modifier = Modifier
+                            .offset(y = (-24).dp)
+                            .size(60.dp),
+                        containerColor = Color(0xFF0054A6),
+                        contentColor = Color.White,
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(12.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Customer", modifier = Modifier.size(36.dp))
                     }
                 }
             }
@@ -222,5 +285,3 @@ fun MainContainer(startDestination: String) {
         }
     }
 }
-
-data class Quadruple<A, B, C>(val first: A, val second: B, val third: C)
