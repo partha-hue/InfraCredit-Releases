@@ -108,7 +108,7 @@ fun MainContainer(startDestination: String) {
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surface,
                         tonalElevation = 8.dp,
-                        modifier = Modifier.height(72.dp)
+                        windowInsets = NavigationBarDefaults.windowInsets
                     ) {
                         NavigationBarItem(
                             selected = currentDestination?.hierarchy?.any { it.route == Screen.Dashboard.route } == true,
@@ -145,7 +145,7 @@ fun MainContainer(startDestination: String) {
                             )
                         )
 
-                        Spacer(Modifier.width(72.dp)) // Increased spacer for FAB
+                        Spacer(Modifier.width(72.dp))
 
                         NavigationBarItem(
                             selected = currentDestination?.hierarchy?.any { it.route == Screen.Contacts.route } == true,
@@ -186,7 +186,8 @@ fun MainContainer(startDestination: String) {
                     FloatingActionButton(
                         onClick = { navController.navigate(Screen.AddCustomer.route) },
                         modifier = Modifier
-                            .offset(y = (-24).dp)
+                            .padding(bottom = 36.dp)
+                            .navigationBarsPadding()
                             .size(60.dp),
                         containerColor = Color(0xFF0054A6),
                         contentColor = Color.White,
