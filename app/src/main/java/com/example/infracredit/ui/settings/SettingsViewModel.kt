@@ -2,11 +2,11 @@ package com.example.infracredit.ui.settings
 
 import android.app.Activity
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.util.Locale
 import javax.inject.Inject
 
 data class ProfileState(
@@ -79,6 +80,9 @@ class SettingsViewModel @Inject constructor(
     val lastBackupTime: StateFlow<Long> = preferenceManager.lastBackupTime
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
+    val currentLanguage: StateFlow<String> = preferenceManager.appLanguage
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "en")
+
     private val _isBackingUp = mutableStateOf(false)
     val isBackingUp: State<Boolean> = _isBackingUp
 
@@ -97,6 +101,21 @@ class SettingsViewModel @Inject constructor(
                     _profileState.value = ProfileState(error = e.message)
                 }
         }
+    }
+
+    fun setLanguage(langCode: String) {
+        viewModelScope.launch {
+            preferenceManager.saveLanguage(langCode)
+            updateLocale(langCode)
+        }
+    }
+
+    private fun updateLocale(langCode: String) {
+        val locale = Locale(langCode)
+        Locale.setDefault(locale)
+        val config = Configuration(context.resources.configuration)
+        config.setLocale(locale)
+        context.resources.updateConfiguration(config, context.resources.displayMetrics)
     }
 
     fun updateProfile(fullName: String, businessName: String?, profilePicUri: Uri?) {
@@ -210,18 +229,14 @@ class SettingsViewModel @Inject constructor(
             } else {
                 _isBackingUp.value = true
                 
-                // For the very first backup (or when permission is needed), we call the repository directly 
-                // because WorkManager cannot show the "UserRecoverableAuthIOException" dialog.
                 val result = backupRepository.uploadBackup(account)
                 
                 if (result.isFailure) {
                     val exception = result.exceptionOrNull()
                     if (exception is UserRecoverableAuthIOException) {
-                        // This handles the "Permission Required" case by opening the Google Consent screen
                         (context as? Activity)?.startActivityForResult(exception.intent, 1001)
                         _isBackingUp.value = false
                     } else {
-                        // Fallback to Worker if it's a normal error or if direct upload failed for other reasons
                         startBackupWorker(context)
                     }
                 } else {

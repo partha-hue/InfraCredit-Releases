@@ -45,10 +45,12 @@ fun SettingsScreen(
 ) {
     val state = viewModel.profileState.value
     val isDarkMode by viewModel.isDarkMode
+    val currentLang by viewModel.currentLanguage.collectAsState()
     val lastBackupTime by viewModel.lastBackupTime.collectAsState()
     val isBackingUp by viewModel.isBackingUp
     val context = LocalContext.current
     var showPasswordDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -101,6 +103,19 @@ fun SettingsScreen(
                     title = "Recycle Bin", 
                     subtitle = "Restore deleted customers",
                     onClick = onNavigateToRecycleBin
+                )
+            }
+
+            SettingsSection(title = "Language") {
+                SettingsItem(
+                    icon = Icons.Default.Language,
+                    title = "App Language",
+                    subtitle = when(currentLang) {
+                        "hi" -> "हिन्दी (Hindi)"
+                        "bn" -> "বাংলা (Bengali)"
+                        else -> "English"
+                    },
+                    onClick = { showLanguageDialog = true }
                 )
             }
 
@@ -181,6 +196,59 @@ fun SettingsScreen(
             viewModel = viewModel,
             onDismiss = { showPasswordDialog = false }
         )
+    }
+
+    if (showLanguageDialog) {
+        LanguageSelectionDialog(
+            currentLang = currentLang,
+            onLanguageSelected = { 
+                viewModel.setLanguage(it)
+                showLanguageDialog = false
+            },
+            onDismiss = { showLanguageDialog = false }
+        )
+    }
+}
+
+@Composable
+fun LanguageSelectionDialog(
+    currentLang: String,
+    onLanguageSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select Language") },
+        text = {
+            Column {
+                LanguageOption("en", "English", currentLang == "en", onLanguageSelected)
+                LanguageOption("hi", "हिन्दी (Hindi)", currentLang == "hi", onLanguageSelected)
+                LanguageOption("bn", "বাংলা (Bengali)", currentLang == "bn", onLanguageSelected)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    )
+}
+
+@Composable
+fun LanguageOption(
+    code: String,
+    label: String,
+    isSelected: Boolean,
+    onSelected: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelected(code) }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = isSelected, onClick = { onSelected(code) })
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = label, fontSize = 16.sp)
     }
 }
 

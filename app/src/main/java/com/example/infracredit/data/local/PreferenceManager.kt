@@ -22,6 +22,7 @@ class PreferenceManager @Inject constructor(
         private val DISMISSED_VERSION_CODE = intPreferencesKey("dismissed_version_code")
         private val LAST_BACKUP_TIME = longPreferencesKey("last_backup_time")
         private val GOOGLE_ACCOUNT_NAME = stringPreferencesKey("google_account_name")
+        private val APP_LANGUAGE = stringPreferencesKey("app_language")
     }
 
     val dismissedVersionCode: Flow<Int> = context.dataStore.data.map { 
@@ -34,6 +35,10 @@ class PreferenceManager @Inject constructor(
 
     val googleAccountName: Flow<String?> = context.dataStore.data.map {
         it[GOOGLE_ACCOUNT_NAME]
+    }
+
+    val appLanguage: Flow<String> = context.dataStore.data.map {
+        it[APP_LANGUAGE] ?: "en"
     }
 
     suspend fun saveDismissedVersion(versionCode: Int) {
@@ -51,6 +56,12 @@ class PreferenceManager @Inject constructor(
     suspend fun saveGoogleAccountName(name: String) {
         context.dataStore.edit { prefs ->
             prefs[GOOGLE_ACCOUNT_NAME] = name
+        }
+    }
+
+    suspend fun saveLanguage(langCode: String) {
+        context.dataStore.edit { prefs ->
+            prefs[APP_LANGUAGE] = langCode
         }
     }
 }
