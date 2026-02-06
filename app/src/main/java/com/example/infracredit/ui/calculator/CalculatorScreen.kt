@@ -1,5 +1,7 @@
 package com.example.infracredit.ui.calculator
 
+import android.telephony.SmsManager
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,6 +29,7 @@ import com.example.infracredit.domain.model.Customer
 import com.example.infracredit.domain.model.TransactionType
 import com.example.infracredit.ui.customer.CustomerViewModel
 import com.example.infracredit.ui.customer.TransactionViewModel
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +41,8 @@ fun CalculatorScreen(
     var expression by remember { mutableStateOf("") }
     var result by remember { mutableStateOf("0") }
     var showCustomerPicker by remember { mutableStateOf(false) }
+    val addTxState = transactionViewModel.addTxState.value
+    val context = LocalContext.current
 
     val buttons = listOf(
         "C", "÷", "×", "⌫",
@@ -48,6 +54,30 @@ fun CalculatorScreen(
 
     LaunchedEffect(Unit) {
         customerViewModel.getCustomers()
+    }
+
+    LaunchedEffect(addTxState.isSuccess) {
+        if (addTxState.isSuccess) {
+            val lastTx = addTxState.lastTransaction
+            val customerId = lastTx?.customerId
+            val customer = customerViewModel.listState.value.customers.find { it.id == customerId }
+            
+            if (customer != null && lastTx != null && !customer.phone.isNullOrBlank()) {
+                try {
+                    val smsManager: SmsManager = context.getSystemService(SmsManager::class.java)
+                    val type = if (lastTx.type == TransactionType.CREDIT) "Credit" else "Payment"
+                    val message = "Dear ${customer.name}, ₹${lastTx.amount} ($type) recorded from Calculator. - Sent via InfraCredit"
+                    
+                    val parts = smsManager.divideMessage(message)
+                    smsManager.sendMultipartTextMessage(customer.phone, null, parts, null, null)
+                    Toast.makeText(context, "Automatic SMS Sent to ${customer.name}", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(context, "SMS failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            transactionViewModel.resetAddTxState()
+            onNavigateBack()
+        }
     }
 
     Scaffold(
@@ -140,7 +170,6 @@ fun CalculatorScreen(
                     transactionViewModel.addTransaction(amountValue, TransactionType.CREDIT, "Added from Calculator", customerId = customer.id)
                 }
                 showCustomerPicker = false
-                onNavigateBack()
             }
         )
     }
@@ -210,7 +239,6 @@ private fun evaluateExpression(expression: String): String {
     
     val exp = expression.replace("×", "*").replace("÷", "/")
     return try {
-        // Simple regex to split but keep delimiters
         val parts = exp.split(Regex("(?<=[-+*/])|(?=[-+*/])")).filter { it.isNotBlank() }
         if (parts.isEmpty()) return "0"
         
