@@ -35,7 +35,8 @@ model Customer {
   transactions Transaction[]
   createdAt    DateTime      @default(now())
 
-  @@index([ownerId])
+  @@index([ownerId, isDeleted])
+  @@index([createdAt])
 }
 
 enum TransactionType {
@@ -52,5 +53,6 @@ model Transaction {
   description String?
   createdAt   DateTime        @default(now())
 
-  @@index([customerId])
+  @@index([customerId, createdAt])
+  @@index([type, createdAt])
 }

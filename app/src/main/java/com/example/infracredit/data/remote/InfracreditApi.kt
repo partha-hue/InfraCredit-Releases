@@ -32,7 +32,9 @@ interface InfracreditApi {
     @GET("customers")
     suspend fun getCustomers(
         @Query("ownerPhone") ownerPhone: String,
-        @Query("deleted") deleted: Boolean = false
+        @Query("deleted") deleted: Boolean = false,
+        @Query("limit") limit: Int? = null,
+        @Query("skip") skip: Int? = null
     ): List<CustomerDto>
 
     @POST("customers")
@@ -50,7 +52,9 @@ interface InfracreditApi {
     @GET("customers/{id}/transactions")
     suspend fun getTransactions(
         @Path("id") customerId: String,
-        @Query("ownerPhone") ownerPhone: String
+        @Query("ownerPhone") ownerPhone: String,
+        @Query("limit") limit: Int? = null,
+        @Query("skip") skip: Int? = null
     ): List<TransactionDto>
 
     @POST("transactions")

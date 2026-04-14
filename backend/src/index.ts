@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 const app = express();
 
 app.use(cors({ origin: '*' }));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
@@ -123,11 +123,6 @@ app.post('/v1/auth/forgot-password', async (req: Request, res: Response) => {
       data: { resetToken: otp }
     });
 
-    // We no longer send SMS from backend. 
-    // In a real app, you'd use a service, but the user requested SIM card sending.
-    // Since this is for password reset, the app will have to handle the "Send OTP" 
-    // button by triggering a local SMS to the user themselves or showing it for demo.
-    // For now, we just return success.
     res.json({ success: true, message: 'OTP generated. Please check your SMS app.', otp }); 
   } catch (error) {
     res.status(500).json({ error: 'Failed to generate OTP' });
@@ -174,15 +169,35 @@ app.post('/v1/auth/reset-password', authenticate, async (req: AuthRequest, res: 
 // --- DASHBOARD ---
 app.get('/v1/dashboard/summary', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const customers = await prisma.customer.findMany({ where: { ownerId: req.userId, isDeleted: false } });
-    const totalOutstanding = customers.reduce((acc, c) => acc + Number(c.totalDue), 0);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const todayPayments = await prisma.transaction.findMany({
-      where: { type: 'PAYMENT', createdAt: { gte: today }, customer: { ownerId: req.userId } }
+    const userId = req.userId!;
+    const today = new Date(); 
+    today.setHours(0,0,0,0);
+
+    const [outstandingResult, todayResult, customerCount] = await Promise.all([
+        prisma.customer.aggregate({
+            _sum: { totalDue: true },
+            where: { ownerId: userId, isDeleted: false }
+        }),
+        prisma.transaction.aggregate({
+            _sum: { amount: true },
+            where: { 
+                type: 'PAYMENT', 
+                createdAt: { gte: today },
+                customer: { ownerId: userId }
+            }
+        }),
+        prisma.customer.count({
+            where: { ownerId: userId, isDeleted: false }
+        })
+    ]);
+
+    res.json({ 
+        totalOutstanding: outstandingResult._sum.totalDue || 0, 
+        todayCollection: todayResult._sum.amount || 0, 
+        activeCustomers: customerCount 
     });
-    const todayCollection = todayPayments.reduce((acc, tx) => acc + tx.amount, 0);
-    res.json({ totalOutstanding, todayCollection, activeCustomers: customers.length });
   } catch (error) {
+    console.error('Dashboard error:', error);
     res.status(500).json({ error: 'Failed to fetch summary' });
   }
 });
@@ -190,10 +205,15 @@ app.get('/v1/dashboard/summary', authenticate, async (req: AuthRequest, res: Res
 // --- CUSTOMERS ---
 app.get('/v1/customers', authenticate, async (req: AuthRequest, res: Response) => {
   const isDeleted = req.query.deleted === 'true';
+  const limit = parseInt(req.query.limit as string) || 100;
+  const skip = parseInt(req.query.skip as string) || 0;
+
   try {
     const customers = await prisma.customer.findMany({ 
       where: { ownerId: req.userId, isDeleted: isDeleted },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: skip
     });
     res.json(customers);
   } catch (error) {
@@ -248,12 +268,22 @@ app.delete('/v1/customers/:id', authenticate, async (req: AuthRequest, res: Resp
 
 // --- TRANSACTIONS ---
 app.get('/v1/customers/:id/transactions', authenticate, async (req: AuthRequest, res: Response) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const skip = parseInt(req.query.skip as string) || 0;
+
     try {
         const transactions = await prisma.transaction.findMany({
             where: { customerId: req.params.id },
-            orderBy: { createdAt: 'asc' }
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            skip: skip
         });
-        res.json(transactions);
+        // Reverse to keep chronological order for UI if needed, or UI can handle it.
+        // Reversing here to return latest first but the UI often expects oldest first for "chat"
+        // Actually, for "chat" view, we usually load latest and scroll up.
+        // Let's keep it 'desc' for efficiency and let UI reverse if it wants, 
+        // OR return 'asc' but that's slow if we want "latest" with limit.
+        res.json(transactions.reverse()); 
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch transactions' });
     }
@@ -325,4 +355,4 @@ app.delete('/v1/transactions/:id', authenticate, async (req: AuthRequest, res: R
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Production Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Optimized Production Server running on port ${PORT}`));
