@@ -23,8 +23,8 @@ android {
         applicationId = "com.example.infracredit"
         minSdk = 24
         targetSdk = 35
-        versionCode = 32
-        versionName = "1.32"
+        versionCode = 34
+        versionName = "1.33"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -124,7 +124,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

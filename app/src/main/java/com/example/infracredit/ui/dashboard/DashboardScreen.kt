@@ -2,6 +2,7 @@ package com.example.infracredit.ui.dashboard
 
 import android.graphics.BitmapFactory
 import android.util.Base64
+import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,16 +14,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +36,7 @@ import com.example.infracredit.R
 import com.example.infracredit.domain.model.Customer
 import com.example.infracredit.ui.customer.CustomerViewModel
 import com.example.infracredit.ui.settings.SettingsViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +56,6 @@ fun DashboardScreen(
     val profileState = settingsViewModel.profileState.value
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
-    
     var showProfileDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -58,26 +64,73 @@ fun DashboardScreen(
         settingsViewModel.loadProfile()
     }
 
+    val netBalance = dashState.totalOutstanding - dashState.todayCollection
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                            contentDescription = "Logo",
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "InfraCredit",
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF0054A6),
-                            fontSize = 20.sp
-                        )
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.animateContentSize()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(Color(0xFF0054A6), Color(0xFF00B4D8))
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.AccountBalanceWallet,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "InfraCredit",
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 20.sp,
+                                letterSpacing = (-0.5).sp
+                            )
+                            Text(
+                                text = profileState.profile?.businessName ?: "Premium Ledger",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = onNavigateToCalculator,
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                            .size(38.dp)
+                    ) {
+                        Icon(Icons.Rounded.Calculate, contentDescription = "Calculator", modifier = Modifier.size(20.dp))
+                    }
+                    
+                    IconButton(
+                        onClick = onNavigateToContacts,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                            .size(38.dp)
+                    ) {
+                        Icon(Icons.Rounded.ContactPhone, contentDescription = "Import Contacts", modifier = Modifier.size(20.dp))
+                    }
+
                     val profile = profileState.profile
                     if (profile?.profilePic != null) {
                         val bitmap = remember(profile.profilePic) {
@@ -93,25 +146,26 @@ fun DashboardScreen(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = "Profile",
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .padding(end = 8.dp)
+                                    .padding(end = 12.dp)
+                                    .size(38.dp)
                                     .clip(CircleShape)
-                                    .clickable { showProfileDialog = true },
+                                    .clickable { showProfileDialog = true }
+                                    .shadow(1.dp, CircleShape),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            IconButton(onClick = { showProfileDialog = true }) {
-                                Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                            IconButton(onClick = { showProfileDialog = true }, modifier = Modifier.padding(end = 4.dp)) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Profile", modifier = Modifier.size(32.dp))
                             }
                         }
                     } else {
-                        IconButton(onClick = { showProfileDialog = true }) {
-                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                        IconButton(onClick = { showProfileDialog = true }, modifier = Modifier.padding(end = 4.dp)) {
+                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile", modifier = Modifier.size(32.dp))
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -122,42 +176,169 @@ fun DashboardScreen(
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            SummarySection(dashState)
+            // Net Balance Hero Banner
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = if (netBalance >= 0) {
+                                    listOf(Color(0xFF0054A6), Color(0xFF003366))
+                                } else {
+                                    listOf(Color(0xFFB71C1C), Color(0xFF7F0000))
+                                }
+                            )
+                        )
+                        .padding(20.dp)
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (netBalance >= 0) "NET RECEIVABLE BALANCE" else "NET PAYABLE BALANCE",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Icon(
+                                imageVector = if (netBalance >= 0) Icons.Rounded.TrendingUp else Icons.Rounded.TrendingDown,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "₹ ${String.format(Locale.getDefault(), "%,.2f", kotlin.math.abs(netBalance))}",
+                            color = Color.White,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
 
-            WhatsAppSearchBar(
+            // Dual Summary Cards Section
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ModernSummaryCard(
+                    label = "You'll Get",
+                    amount = dashState.totalOutstanding,
+                    icon = Icons.Rounded.ArrowDownward,
+                    color = Color(0xFF2E7D32),
+                    backgroundColor = Color(0xFFE8F5E9),
+                    modifier = Modifier.weight(1f)
+                )
+                ModernSummaryCard(
+                    label = "You'll Give",
+                    amount = dashState.todayCollection,
+                    icon = Icons.Rounded.ArrowUpward,
+                    color = Color(0xFFC62828),
+                    backgroundColor = Color(0xFFFFEBEE),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Search Bar & Filter Section
+            AdvancedSearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it }
             )
 
-            FilterChips(
+            AdvancedFilterChips(
                 selectedFilter = selectedFilter,
                 onFilterSelected = { selectedFilter = it }
             )
 
+            // Header for customer list
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Customers & Ledgers",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+                IconButton(
+                    onClick = { dashboardViewModel.loadDashboardData(); customerViewModel.getCustomers() },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Refresh,
+                        contentDescription = "Refresh",
+                        tint = Color(0xFF0054A6),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            // Customer List
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 if (custState.isLoading) {
                     item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Color(0xFF0054A6), strokeWidth = 3.dp)
+                        }
+                    }
+                } else if (custState.error != null && custState.customers.isEmpty()) {
+                    item {
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color(0xFF0054A6))
+                            Text(text = "Offline Mode - Displaying Cached Data", color = Color.Gray, fontSize = 13.sp)
                         }
                     }
                 } else {
                     val filteredCustomers = custState.customers.filter {
-                        val matchesSearch = it.name.contains(searchQuery, ignoreCase = true)
+                        val matchesSearch = it.name.contains(searchQuery, ignoreCase = true) || (it.phone?.contains(searchQuery) ?: false)
                         val matchesFilter = when (selectedFilter) {
                             "All" -> true
                             "Credit Due" -> it.totalDue > 0
-                            "Clear" -> it.totalDue == 0.0
+                            "You Owe" -> it.totalDue < 0
+                            "Settled" -> it.totalDue == 0.0
                             else -> true
                         }
                         matchesSearch && matchesFilter
                     }
                     
-                    items(filteredCustomers) { customer ->
-                        WhatsAppCustomerItem(customer, onNavigateToDetail)
+                    if (filteredCustomers.isEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(48.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(Icons.Rounded.SearchOff, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color.Gray.copy(alpha = 0.5f))
+                                Spacer(Modifier.height(12.dp))
+                                Text("No matching customers found", color = Color.Gray, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    } else {
+                        items(filteredCustomers, key = { it.id }) { customer ->
+                            PremiumCustomerItem(customer, onNavigateToDetail)
+                        }
                     }
                 }
             }
@@ -168,11 +349,24 @@ fun DashboardScreen(
         AlertDialog(
             onDismissRequest = { showProfileDialog = false },
             confirmButton = {
-                TextButton(onClick = { showProfileDialog = false }) {
-                    Text("Close")
+                Button(
+                    onClick = { showProfileDialog = false },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054A6))
+                ) {
+                    Text("Done")
                 }
             },
-            title = { Text("Owner Profile") },
+            dismissButton = {
+                TextButton(onClick = {
+                    showProfileDialog = false
+                    dashboardViewModel.logout { onNavigateToSettings() }
+                }) {
+                    Text("Logout", color = Color.Red)
+                }
+            },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text("Business Profile", fontWeight = FontWeight.Bold) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     val profile = profileState.profile
@@ -189,18 +383,40 @@ fun DashboardScreen(
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = null,
-                                modifier = Modifier.size(100.dp).clip(CircleShape),
+                                modifier = Modifier
+                                    .size(90.dp)
+                                    .clip(CircleShape),
                                 contentScale = ContentScale.Crop
                             )
                         }
                     } else {
-                        Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(100.dp), tint = Color.Gray)
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .background(Color(0xFF0054A6).copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(44.dp), tint = Color(0xFF0054A6))
+                        }
                     }
                     Spacer(Modifier.height(16.dp))
-                    Text(text = profile?.fullName ?: "Name not set", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text(text = profile?.phone ?: "Number not set", fontSize = 14.sp, color = Color.Gray)
-                    if (profile?.businessName != null) {
-                        Text(text = profile.businessName, fontSize = 14.sp, color = Color.Gray)
+                    Text(text = profile?.fullName ?: "Merchant Partner", modifier = Modifier.padding(horizontal = 8.dp), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(4.dp))
+                    Text(text = "📞 ${profile?.phone ?: "Not available"}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (!profile?.businessName.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            color = Color(0xFF0054A6).copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = profile!!.businessName,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0054A6)
+                            )
+                        }
                     }
                 }
             }
@@ -209,88 +425,93 @@ fun DashboardScreen(
 }
 
 @Composable
-fun SummarySection(state: DashboardState) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        SummaryCard(
-            label = "You'll Get",
-            amount = state.totalOutstanding.toString(),
-            containerColor = Color(0xFFE8F5E9),
-            contentColor = Color(0xFF388E3C),
-            modifier = Modifier.weight(1f)
-        )
-        SummaryCard(
-            label = "You'll Give",
-            amount = state.todayCollection.toString(), 
-            containerColor = Color(0xFFFFEBEE),
-            contentColor = Color(0xFFD32F2F),
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-fun SummaryCard(label: String, amount: String, containerColor: Color, contentColor: Color, modifier: Modifier) {
+fun ModernSummaryCard(label: String, amount: Double, icon: ImageVector, color: Color, backgroundColor: Color, modifier: Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(label, fontSize = 12.sp, color = contentColor.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
-            Text("₹ $amount", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = contentColor)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(backgroundColor, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "₹${String.format(Locale.getDefault(), "%,.0f", amount)}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = color,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WhatsAppSearchBar(query: String, onQueryChange: (String) -> Unit) {
+fun AdvancedSearchBar(query: String, onQueryChange: (String) -> Unit) {
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        placeholder = { Text("Search customers", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-        shape = RoundedCornerShape(24.dp),
+        placeholder = { Text("Search by name or phone number...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp) },
+        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = Color(0xFF0054A6)) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Rounded.Clear, contentDescription = "Clear", tint = Color.Gray)
+                }
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             focusedBorderColor = Color(0xFF0054A6),
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
         ),
         singleLine = true
     )
 }
 
 @Composable
-fun FilterChips(selectedFilter: String, onFilterSelected: (String) -> Unit) {
-    val filters = listOf("All", "Credit Due", "Clear")
+fun AdvancedFilterChips(selectedFilter: String, onFilterSelected: (String) -> Unit) {
+    val filters = listOf("All", "Credit Due", "You Owe", "Settled")
     LazyRow(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(filters) { filter ->
             val isSelected = selectedFilter == filter
             Surface(
                 modifier = Modifier.clickable { onFilterSelected(filter) },
-                shape = RoundedCornerShape(20.dp),
-                color = if (isSelected) Color(0xFF0054A6) else MaterialTheme.colorScheme.surface,
-                border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                shape = RoundedCornerShape(14.dp),
+                color = if (isSelected) Color(0xFF0054A6) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
             ) {
                 Text(
                     text = filter,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                 )
             }
         }
@@ -298,50 +519,98 @@ fun FilterChips(selectedFilter: String, onFilterSelected: (String) -> Unit) {
 }
 
 @Composable
-fun WhatsAppCustomerItem(customer: Customer, onClick: (String) -> Unit) {
-    Surface(
+fun PremiumCustomerItem(customer: Customer, onClick: (String) -> Unit) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 5.dp)
             .clickable { onClick(customer.id) },
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(14.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val isCredit = customer.totalDue > 0
+            val isDebit = customer.totalDue < 0
+            
+            val avatarColor = when {
+                isCredit -> Color(0xFFC62828)
+                isDebit -> Color(0xFF2E7D32)
+                else -> Color(0xFF0054A6)
+            }
+
             Box(
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF0054A6).copy(alpha = 0.1f)),
+                    .size(46.dp)
+                    .background(avatarColor.copy(alpha = 0.1f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = customer.name.take(1).uppercase(),
-                    color = Color(0xFF0054A6),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    color = avatarColor,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(customer.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
-                Text("Updated: ${customer.createdAt.split("T").getOrNull(0) ?: ""}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                val isCredit = customer.totalDue > 0
                 Text(
-                    text = "₹ ${kotlin.math.abs(customer.totalDue)}",
-                    fontWeight = FontWeight.ExtraBold,
+                    text = customer.name,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = if (isCredit) Color(0xFFD32F2F) else if (customer.totalDue < 0) Color(0xFF388E3C) else Color.Gray
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (isCredit) "You'll Get" else if (customer.totalDue < 0) "You'll Give" else "Settled",
-                    fontSize = 10.sp,
-                    color = (if (isCredit) Color(0xFFD32F2F) else if (customer.totalDue < 0) Color(0xFF388E3C) else Color.Gray).copy(alpha = 0.7f)
+                    text = if (!customer.phone.isNullOrBlank()) customer.phone else "No contact number",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "₹${String.format(Locale.getDefault(), "%,.0f", kotlin.math.abs(customer.totalDue))}",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 16.sp,
+                    color = when {
+                        isCredit -> Color(0xFFC62828)
+                        isDebit -> Color(0xFF2E7D32)
+                        else -> Color.Gray
+                    }
+                )
+                
+                Surface(
+                    color = when {
+                        isCredit -> Color(0xFFFFEBEE)
+                        isDebit -> Color(0xFFE8F5E9)
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    },
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Text(
+                        text = when {
+                            isCredit -> "YOU'LL GET"
+                            isDebit -> "YOU'LL GIVE"
+                            else -> "SETTLED"
+                        },
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            isCredit -> Color(0xFFC62828)
+                            isDebit -> Color(0xFF2E7D32)
+                            else -> Color.Gray
+                        },
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
     }

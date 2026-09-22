@@ -12,7 +12,6 @@ import com.example.infracredit.domain.repository.AuthRepository
 import com.example.infracredit.domain.repository.CustomerRepository
 import com.example.infracredit.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -51,6 +50,15 @@ class TransactionViewModel @Inject constructor(
                     }
                 }
                 .launchIn(viewModelScope)
+
+            transactionRepository.getTransactionsFlow(customerIdFromState)
+                .onEach { transactions ->
+                    _detailState.value = _detailState.value.copy(
+                        transactions = transactions.sortedBy { it.createdAt },
+                        isLoading = false
+                    )
+                }
+                .launchIn(viewModelScope)
         }
     }
 
@@ -73,13 +81,11 @@ class TransactionViewModel @Inject constructor(
                 _detailState.value = _detailState.value.copy(isLoading = true, error = null)
             }
 
-            val customerDeferred = async { customerRepository.getCustomerById(targetId) }
-            val transactionsDeferred = async { transactionRepository.getTransactions(targetId) }
+            // Fetch from network asynchronously in the background to avoid freezing the UI
+            val customerResult = customerRepository.getCustomerById(targetId)
+            val transactionsResult = transactionRepository.getTransactions(targetId)
 
-            val customerResult = customerDeferred.await()
-            val transactionsResult = transactionsDeferred.await()
-
-            if (customerResult.isFailure && transactionsResult.isFailure) {
+            if (customerResult.isFailure && transactionsResult.isFailure && _detailState.value.transactions.isEmpty()) {
                 _detailState.value = _detailState.value.copy(
                     isLoading = false,
                     error = "Check your internet connection"
@@ -87,9 +93,8 @@ class TransactionViewModel @Inject constructor(
             } else {
                 _detailState.value = _detailState.value.copy(
                     customer = customerResult.getOrNull() ?: _detailState.value.customer,
-                    transactions = transactionsResult.getOrDefault(emptyList()).sortedBy { it.createdAt },
                     isLoading = false,
-                    error = if (transactionsResult.isFailure) "Failed to load transactions" else null
+                    error = null
                 )
             }
         }
@@ -103,8 +108,9 @@ class TransactionViewModel @Inject constructor(
             if (result.isSuccess) {
                 val newTx = result.getOrNull()
                 _addTxState.value = AddTransactionState(isSuccess = true, lastTransaction = newTx)
-                loadCustomerData(targetId)
-                customerRepository.refreshCustomers()
+                // Optimize: launch network updates asynchronously so UI updates instantly via local Room flow
+                launch { transactionRepository.getTransactions(targetId) }
+                launch { customerRepository.refreshCustomers() }
             } else {
                 _addTxState.value = _addTxState.value.copy(
                     isLoading = false, 
@@ -120,9 +126,11 @@ class TransactionViewModel @Inject constructor(
             val result = transactionRepository.updateTransaction(transactionId, amount, type, description)
             if (result.isSuccess) {
                 val updatedTx = result.getOrNull()
-                customerRepository.refreshCustomers()
                 _addTxState.value = AddTransactionState(isSuccess = true, lastTransaction = updatedTx)
-                loadCustomerData()
+                launch { customerRepository.refreshCustomers() }
+                if (customerIdFromState != null) {
+                    launch { transactionRepository.getTransactions(customerIdFromState) }
+                }
             } else {
                 _addTxState.value = _addTxState.value.copy(
                     isLoading = false,
@@ -137,9 +145,11 @@ class TransactionViewModel @Inject constructor(
             _addTxState.value = _addTxState.value.copy(isLoading = true)
             val result = transactionRepository.deleteTransaction(transactionId)
             if (result.isSuccess) {
-                customerRepository.refreshCustomers()
                 _addTxState.value = AddTransactionState(isSuccess = true)
-                loadCustomerData()
+                launch { customerRepository.refreshCustomers() }
+                if (customerIdFromState != null) {
+                    launch { transactionRepository.getTransactions(customerIdFromState) }
+                }
             } else {
                 _addTxState.value = _addTxState.value.copy(
                     isLoading = false,
@@ -153,7 +163,7 @@ class TransactionViewModel @Inject constructor(
         val id = customerIdFromState ?: return
         viewModelScope.launch {
             customerRepository.deleteCustomer(id).onSuccess {
-                customerRepository.refreshCustomers()
+                launch { customerRepository.refreshCustomers() }
                 onSuccess()
             }
         }

@@ -96,9 +96,16 @@ fun CustomerDetailScreen(
         }
     }
 
-    LaunchedEffect(state.transactions.size) {
+    LaunchedEffect(state.transactions) {
         if (state.transactions.isNotEmpty()) {
-            listState.animateScrollToItem(state.transactions.size + state.transactions.groupBy { it.createdAt.split("T")[0] }.size)
+            try {
+                val totalItems = listState.layoutInfo.totalItemsCount
+                if (totalItems > 0) {
+                    listState.scrollToItem(totalItems - 1)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -284,7 +291,14 @@ fun CustomerDetailScreen(
                 FloatingActionButton(
                     onClick = {
                         scope.launch {
-                            listState.animateScrollToItem(state.transactions.size + 10)
+                            try {
+                                val totalItems = listState.layoutInfo.totalItemsCount
+                                if (totalItems > 0) {
+                                    listState.animateScrollToItem(totalItems - 1)
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     },
                     modifier = Modifier.size(40.dp).padding(bottom = 0.dp),
