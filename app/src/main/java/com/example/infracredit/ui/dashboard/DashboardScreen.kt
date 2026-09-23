@@ -76,12 +76,12 @@ fun DashboardScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(38.dp)
                                 .background(
                                     brush = Brush.linearGradient(
                                         colors = listOf(Color(0xFF0054A6), Color(0xFF00B4D8))
                                     ),
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = RoundedCornerShape(10.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -89,21 +89,21 @@ fun DashboardScreen(
                                 imageVector = Icons.Rounded.AccountBalanceWallet,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                        Spacer(Modifier.width(14.dp))
+                        Spacer(Modifier.width(10.dp))
                         Column {
                             Text(
                                 text = "InfraCredit",
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 24.sp,
+                                fontSize = 20.sp,
                                 letterSpacing = (-0.5).sp
                             )
                             Text(
                                 text = profileState.profile?.businessName ?: "Premium Ledger",
-                                fontSize = 13.sp,
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold
                             )
@@ -114,21 +114,21 @@ fun DashboardScreen(
                     IconButton(
                         onClick = onNavigateToCalculator,
                         modifier = Modifier
-                            .padding(end = 8.dp)
+                            .padding(end = 6.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f), CircleShape)
-                            .size(44.dp)
+                            .size(36.dp)
                     ) {
-                        Icon(Icons.Rounded.Calculate, contentDescription = "Calculator", modifier = Modifier.size(24.dp), tint = Color(0xFF0054A6))
+                        Icon(Icons.Rounded.Calculate, contentDescription = "Calculator", modifier = Modifier.size(20.dp), tint = Color(0xFF0054A6))
                     }
                     
                     IconButton(
                         onClick = onNavigateToContacts,
                         modifier = Modifier
-                            .padding(end = 12.dp)
+                            .padding(end = 8.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f), CircleShape)
-                            .size(44.dp)
+                            .size(36.dp)
                     ) {
-                        Icon(Icons.Rounded.ContactPhone, contentDescription = "Import Contacts", modifier = Modifier.size(24.dp), tint = Color(0xFF0054A6))
+                        Icon(Icons.Rounded.ContactPhone, contentDescription = "Import Contacts", modifier = Modifier.size(20.dp), tint = Color(0xFF0054A6))
                     }
 
                     val profile = profileState.profile
@@ -146,21 +146,21 @@ fun DashboardScreen(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = "Profile",
                                 modifier = Modifier
-                                    .padding(end = 16.dp)
-                                    .size(44.dp)
+                                    .padding(end = 12.dp)
+                                    .size(36.dp)
                                     .clip(CircleShape)
                                     .clickable { showProfileDialog = true }
-                                    .shadow(3.dp, CircleShape),
+                                    .shadow(2.dp, CircleShape),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            IconButton(onClick = { showProfileDialog = true }, modifier = Modifier.padding(end = 8.dp)) {
-                                Icon(Icons.Default.AccountCircle, contentDescription = "Profile", modifier = Modifier.size(40.dp))
+                            IconButton(onClick = { showProfileDialog = true }, modifier = Modifier.padding(end = 4.dp)) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Profile", modifier = Modifier.size(34.dp))
                             }
                         }
                     } else {
-                        IconButton(onClick = { showProfileDialog = true }, modifier = Modifier.padding(end = 8.dp)) {
-                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile", modifier = Modifier.size(40.dp))
+                        IconButton(onClick = { showProfileDialog = true }, modifier = Modifier.padding(end = 4.dp)) {
+                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile", modifier = Modifier.size(34.dp))
                         }
                     }
                 },
@@ -176,14 +176,14 @@ fun DashboardScreen(
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Net Balance Hero Banner - Larger and more prominent
+            // Net Balance Hero Banner - More compact and adjustable for all screens
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(28.dp),
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -197,7 +197,7 @@ fun DashboardScreen(
                                 }
                             )
                         )
-                        .padding(28.dp)
+                        .padding(16.dp)
                 ) {
                     Column {
                         Row(
@@ -208,34 +208,34 @@ fun DashboardScreen(
                             Text(
                                 text = if (netBalance >= 0) "TOTAL NET RECEIVABLE" else "TOTAL NET PAYABLE",
                                 color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 13.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 1.5.sp
+                                letterSpacing = 1.2.sp
                             )
                             Icon(
                                 imageVector = if (netBalance >= 0) Icons.Rounded.TrendingUp else Icons.Rounded.TrendingDown,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "₹ ${String.format(Locale.getDefault(), "%,.2f", kotlin.math.abs(netBalance))}",
                             color = Color.White,
-                            fontSize = 36.sp,
+                            fontSize = 26.sp,
                             fontWeight = FontWeight.Black
                         )
                     }
                 }
             }
 
-            // Dual Summary Cards Section - Larger text
+            // Dual Summary Cards Section - Optimized size
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = 14.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ModernSummaryCard(
                     label = "You'll Get",
@@ -270,44 +270,44 @@ fun DashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Customers & Ledgers",
-                    fontSize = 18.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 IconButton(
                     onClick = { dashboardViewModel.loadDashboardData(); customerViewModel.getCustomers() },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Refresh,
                         contentDescription = "Refresh",
                         tint = Color(0xFF0054A6),
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
 
-            // Customer List - Larger items as requested
+            // Customer List - Fully scrollable and visible
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 96.dp)
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 if (custState.isLoading) {
                     item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color(0xFF0054A6), strokeWidth = 4.dp)
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Color(0xFF0054A6), strokeWidth = 3.dp)
                         }
                     }
                 } else if (custState.error != null && custState.customers.isEmpty()) {
                     item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            Text(text = "Offline Mode - Displaying Cached Data", color = Color.Gray, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                            Text(text = "Offline Mode - Displaying Cached Data", color = Color.Gray, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 } else {
@@ -328,12 +328,12 @@ fun DashboardScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(64.dp),
+                                    .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Rounded.SearchOff, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray.copy(alpha = 0.5f))
-                                Spacer(Modifier.height(16.dp))
-                                Text("No matching customers found", color = Color.Gray, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                                Icon(Icons.Rounded.SearchOff, contentDescription = null, modifier = Modifier.size(44.dp), tint = Color.Gray.copy(alpha = 0.5f))
+                                Spacer(Modifier.height(8.dp))
+                                Text("No matching customers found", color = Color.Gray, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     } else {
@@ -352,7 +352,7 @@ fun DashboardScreen(
             confirmButton = {
                 Button(
                     onClick = { showProfileDialog = false },
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054A6))
                 ) {
                     Text("Done", fontWeight = FontWeight.Bold)
@@ -366,7 +366,7 @@ fun DashboardScreen(
                     Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold)
                 }
             },
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(20.dp),
             title = { Text("Business Profile", fontWeight = FontWeight.Black) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -385,36 +385,36 @@ fun DashboardScreen(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = null,
                                 modifier = Modifier
-                                    .size(100.dp)
+                                    .size(80.dp)
                                     .clip(CircleShape)
-                                    .shadow(4.dp, CircleShape),
+                                    .shadow(2.dp, CircleShape),
                                 contentScale = ContentScale.Crop
                             )
                         }
                     } else {
                         Box(
                             modifier = Modifier
-                                .size(100.dp)
+                                .size(80.dp)
                                 .background(Color(0xFF0054A6).copy(alpha = 0.15f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(50.dp), tint = Color(0xFF0054A6))
+                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(40.dp), tint = Color(0xFF0054A6))
                         }
                     }
-                    Spacer(Modifier.height(20.dp))
-                    Text(text = profile?.fullName ?: "Merchant Partner", modifier = Modifier.padding(horizontal = 8.dp), fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(Modifier.height(6.dp))
-                    Text(text = "📞 ${profile?.phone ?: "Not available"}", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(14.dp))
+                    Text(text = profile?.fullName ?: "Merchant Partner", modifier = Modifier.padding(horizontal = 8.dp), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(4.dp))
+                    Text(text = "📞 ${profile?.phone ?: "Not available"}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                     if (!profile?.businessName.isNullOrBlank()) {
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(10.dp))
                         Surface(
                             color = Color(0xFF0054A6).copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(14.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(
                                 text = profile!!.businessName,
-                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                                fontSize = 15.sp,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF0054A6)
                             )
@@ -431,29 +431,29 @@ fun ModernSummaryCard(label: String, amount: Double, icon: ImageVector, color: C
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(36.dp)
                     .background(backgroundColor, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+                Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
             }
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(8.dp))
             Column {
-                Text(label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.ExtraBold)
+                Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.ExtraBold)
                 Text(
                     text = "₹${String.format(Locale.getDefault(), "%,.0f", amount)}",
-                    fontSize = 20.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Black,
                     color = color,
                     maxLines = 1,
@@ -472,9 +472,9 @@ fun AdvancedSearchBar(query: String, onQueryChange: (String) -> Unit) {
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        placeholder = { Text("Search by name or phone number...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp, fontWeight = FontWeight.Medium) },
-        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = Color(0xFF0054A6), modifier = Modifier.size(28.dp)) },
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        placeholder = { Text("Search by name or phone number...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, fontWeight = FontWeight.Medium) },
+        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = Color(0xFF0054A6), modifier = Modifier.size(20.dp)) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
@@ -482,7 +482,7 @@ fun AdvancedSearchBar(query: String, onQueryChange: (String) -> Unit) {
                 }
             }
         },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -497,22 +497,22 @@ fun AdvancedSearchBar(query: String, onQueryChange: (String) -> Unit) {
 fun AdvancedFilterChips(selectedFilter: String, onFilterSelected: (String) -> Unit) {
     val filters = listOf("All", "Credit Due", "You Owe", "Settled")
     LazyRow(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(filters) { filter ->
             val isSelected = selectedFilter == filter
             Surface(
                 modifier = Modifier.clickable { onFilterSelected(filter) },
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = if (isSelected) Color(0xFF0054A6) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
             ) {
                 Text(
                     text = filter,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                     color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -525,15 +525,15 @@ fun PremiumCustomerItem(customer: Customer, onClick: (String) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 14.dp, vertical = 4.dp)
             .clickable { onClick(customer.id) },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(12.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -548,7 +548,7 @@ fun PremiumCustomerItem(customer: Customer, onClick: (String) -> Unit) {
 
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(42.dp)
                     .background(avatarColor.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -556,23 +556,23 @@ fun PremiumCustomerItem(customer: Customer, onClick: (String) -> Unit) {
                     text = customer.name.take(1).uppercase(),
                     color = avatarColor,
                     fontWeight = FontWeight.Black,
-                    fontSize = 22.sp
+                    fontSize = 16.sp
                 )
             }
-            Spacer(modifier = Modifier.width(18.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = customer.name,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp,
+                    fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (!customer.phone.isNullOrBlank()) customer.phone else "No contact number",
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
@@ -582,7 +582,7 @@ fun PremiumCustomerItem(customer: Customer, onClick: (String) -> Unit) {
                 Text(
                     text = "₹${String.format(Locale.getDefault(), "%,.0f", kotlin.math.abs(customer.totalDue))}",
                     fontWeight = FontWeight.Black,
-                    fontSize = 20.sp,
+                    fontSize = 16.sp,
                     color = when {
                         isCredit -> Color(0xFFC62828)
                         isDebit -> Color(0xFF2E7D32)
@@ -596,8 +596,8 @@ fun PremiumCustomerItem(customer: Customer, onClick: (String) -> Unit) {
                         isDebit -> Color(0xFFE8F5E9)
                         else -> MaterialTheme.colorScheme.surfaceVariant
                     },
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.padding(top = 6.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Text(
                         text = when {
@@ -605,14 +605,14 @@ fun PremiumCustomerItem(customer: Customer, onClick: (String) -> Unit) {
                             isDebit -> "YOU'LL GIVE"
                             else -> "SETTLED"
                         },
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Black,
                         color = when {
                             isCredit -> Color(0xFFC62828)
                             isDebit -> Color(0xFF2E7D32)
                             else -> Color.Gray
                         },
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }

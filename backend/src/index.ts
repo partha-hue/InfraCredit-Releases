@@ -3,8 +3,12 @@ import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 import { authenticate, AuthRequest } from './middlewares/auth';
 import { computeOptimized } from './services/accelerator';
+
+// Load environment variables
+dotenv.config();
 
 const prisma = new PrismaClient();
 const app = express();
@@ -369,5 +373,7 @@ app.delete('/v1/transactions/:id', authenticate, async (req: AuthRequest, res: R
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Optimized Production Server running on port ${PORT}`));
+const PORT = process.env.PORT || '3000';
+app.listen(parseInt(PORT, 10), '0.0.0.0', () => {
+  console.log(`🚀 Production Server running on port ${PORT}`);
+});
