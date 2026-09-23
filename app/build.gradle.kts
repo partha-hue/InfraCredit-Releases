@@ -23,8 +23,8 @@ android {
         applicationId = "com.example.infracredit"
         minSdk = 24
         targetSdk = 35
-        versionCode = 34
-        versionName = "1.33"
+        versionCode = 35
+        versionName = "1.35"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -117,9 +117,9 @@ fun CustomerDetailScreen(
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
                     try {
                         val smsManager: SmsManager = context.getSystemService(SmsManager::class.java)
-                        val type = if (lastTx.type == TransactionType.CREDIT) "Credit" else "Payment"
-                        val label = if (totalDue >= 0) "Total Due" else "Advance"
-                        val message = "Dear ${customer.name}, ₹${lastTx.amount} ($type) recorded. $label: ₹${abs(totalDue)}. - Sent via InfraCredit"
+                        val type = if (lastTx.type == TransactionType.CREDIT) "Gave (Credit)" else "Got (Payment)"
+                        val label = if (totalDue >= 0) "Total Balance Due" else "Advance Balance"
+                        val message = "Dear ${customer.name}, ₹${String.format(Locale.getDefault(), "%,.2f", lastTx.amount)} ($type) recorded successfully. Net $label: ₹${String.format(Locale.getDefault(), "%,.2f", abs(totalDue))}. Thank you! - Sent via InfraCredit"
                         
                         val parts = smsManager.divideMessage(message)
                         smsManager.sendMultipartTextMessage(customer.phone, null, parts, null, null)
@@ -233,7 +233,7 @@ fun CustomerDetailScreen(
                         Text("Balance Due", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "₹ ${String.format(Locale.getDefault(), "%,.0f", abs(totalDue))}",
+                                text = "₹ ${String.format(Locale.getDefault(), "%,.2f", abs(totalDue))}",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = if (totalDue >= 0) Color(0xFFD32F2F) else Color(0xFF388E3C)
@@ -334,7 +334,7 @@ fun CustomerDetailScreen(
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("Send WhatsApp Reminder", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                    Text("Remind ${customer.name} about ₹${abs(totalDue)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Remind ${customer.name} about ₹${String.format(Locale.getDefault(), "%,.2f", abs(totalDue))}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
                             }
@@ -466,7 +466,7 @@ fun WhatsAppTransactionBubble(
                 Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = if (isGiven) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (isDark) Color.White else Color.Black)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "₹${String.format(Locale.getDefault(), "%,.0f", tx.amount)}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color.Black)
+                    Text(text = "₹${String.format(Locale.getDefault(), "%,.2f", tx.amount)}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color.Black)
                     
                     if (time.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(8.dp))
@@ -482,7 +482,7 @@ fun WhatsAppTransactionBubble(
         
         // Show current due below the bubble
         Text(
-            text = "₹${String.format(Locale.getDefault(), "%,.0f", abs(runningBalance))} ${if (runningBalance >= 0) "Due" else "Advance"}",
+            text = "₹${String.format(Locale.getDefault(), "%,.2f", abs(runningBalance))} ${if (runningBalance >= 0) "Due" else "Advance"}",
             fontSize = 12.sp,
             color = if (isDark) Color(0xFF8696A0) else Color(0xFF667781),
             modifier = Modifier.padding(top = 2.dp, start = if (isGiven) 0.dp else 4.dp, end = if (isGiven) 4.dp else 0.dp)
